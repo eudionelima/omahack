@@ -41,6 +41,18 @@ Panel {
     }
   }
 
+  // Ctrl+K global: funciona com foco em qualquer campo (o Keys.onPressed do
+  // PanelKeyCatcher nao recebe teclas de irmaos com foco, por isso o Shortcut)
+  Shortcut {
+    sequence: "Ctrl+K"
+    onActivated: {
+      root.showPalette = !root.showPalette
+      root.paletteQuery = ""
+      root.paletteIndex = 0
+      if (root.showPalette) Qt.callLater(function() { paletteField.forceActiveFocus() })
+    }
+  }
+
   readonly property string home: Quickshell.env("HOME")
 
   property string attackerIp: "10.10.10.10"
@@ -338,7 +350,6 @@ Panel {
     owner: root
     bar: root.bar
     open: root.opened
-    focusTarget: searchField
     contentWidth: panel.fittedContentWidth(Style.space(660))
     contentHeight: panel.fittedContentHeight(mainColumn.implicitHeight + Style.space(12), Style.space(720))
 
@@ -347,10 +358,6 @@ Panel {
         root.showPalette = false
         root.keyboardNav = false
         root.selectedIndex = 0
-        Qt.callLater(function() {
-          searchField.forceActiveFocus()
-          searchField.selectAll()
-        })
       }
     }
 
@@ -366,8 +373,6 @@ Panel {
           root.paletteIndex = 0
           if (root.showPalette) {
             Qt.callLater(function() { paletteField.forceActiveFocus() })
-          } else {
-            Qt.callLater(function() { searchField.forceActiveFocus() })
           }
           event.accepted = true
           return
@@ -377,7 +382,6 @@ Panel {
         if (root.showPalette) {
           if (event.key === Qt.Key_Escape) {
             root.showPalette = false
-            searchField.forceActiveFocus()
             event.accepted = true
             return
           }
@@ -610,51 +614,7 @@ Panel {
           }
         }
 
-        // Search Input
-        Row {
-          width: parent.width
-          spacing: Style.space(6)
-
-          Item {
-            width: parent.width
-            height: searchField.implicitHeight
-
-            TextField {
-              id: searchField
-              anchors.fill: parent
-              placeholderText: root.tr("Search payloads, techniques, keywords... (Ctrl+K for palette)", "Pesquisar payloads, técnicas, palavras-chave... (Ctrl+K para paleta)")
-              text: root.searchText
-              font.family: Style.font.family
-              foreground: root.bar.foreground
-              verticalPadding: Style.spacing.controlPaddingY
-              rightPadding: root.searchText !== "" ? Style.space(28) : Style.spacing.controlPaddingX
-              onTextChanged: if (text !== root.searchText) { root.searchText = text; root.selectedIndex = 0; root.keyboardNav = false }
-            }
-
-            Text {
-              visible: root.searchText !== ""
-              anchors.right: parent.right
-              anchors.rightMargin: Style.space(10)
-              anchors.verticalCenter: parent.verticalCenter
-              text: "✕"
-              color: clearMouse.containsMouse ? Color.accent : Qt.darker(root.bar.foreground, 1.4)
-              font.pixelSize: Style.font.caption
-              font.bold: true
-              MouseArea {
-                id: clearMouse
-                anchors.fill: parent
-                anchors.margins: Style.space(-4)
-                hoverEnabled: true
-                cursorShape: Qt.PointingHandCursor
-                onClicked: {
-                  root.searchText = ""
-                  searchField.forceActiveFocus()
-                }
-              }
-            }
-          }
-        }
-
+        // Search Input removido: pesquisa agora e so via paleta Ctrl+K
         // Parameters Bar (IP / Port / File / AD / Pivot)
         Row {
           width: parent.width
@@ -1394,7 +1354,11 @@ Text {
               foreground: root.bar.foreground
               verticalPadding: Style.spacing.controlPaddingY
               onTextChanged: if (text !== root.paletteQuery) { root.paletteQuery = text; root.paletteIndex = 0 }
-              Keys.onEscapePressed: { root.showPalette = false; searchField.forceActiveFocus() }
+              Keys.onUpPressed: { root.paletteIndex = Math.max(root.paletteIndex - 1, 0) }
+              Keys.onDownPressed: { root.paletteIndex = Math.min(root.paletteIndex + 1, root.filteredPaletteItems.length - 1) }
+              Keys.onReturnPressed: { if (root.filteredPaletteItems.length > 0) root.executePaletteItem(root.filteredPaletteItems[root.paletteIndex]) }
+              Keys.onEnterPressed: { if (root.filteredPaletteItems.length > 0) root.executePaletteItem(root.filteredPaletteItems[root.paletteIndex]) }
+              Keys.onEscapePressed: { root.showPalette = false }
             }
 
             // Palette Results List
