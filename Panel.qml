@@ -348,9 +348,11 @@ Panel {
     onTriggered: hashProc.running = false
   }
 
-  // File reads go through safe_read.py (no FileView): descriptor-relative
-  // O_NOFOLLOW open, regular-file + ownership checks on the fd, strictly
-  // capped reads, purpose allowlist only (target|clipboard). No path input.
+  // File reads go through safe_read.py (no FileView): TOCTOU-free walk from a
+  // retained root fd (O_DIRECTORY|O_NOFOLLOW per component, root-or-self owned
+  // dirs), final open relative to the retained parent, regular-file + ownership
+  // checks on the fd, strictly capped reads, purpose allowlist only. Python
+  // runs isolated (-I) under a closed minimal environment (env -i, HOME only).
   readonly property string safeReadHelper: root.home + "/.config/omarchy/plugins/dione.omahack/safe_read.py"
   property string safeReadMode: ""
 
@@ -371,7 +373,8 @@ Panel {
 
   function loadSafeFiles() {
     safeReadMode = "target"
-    safeReadProc.command = ["/usr/bin/python3", root.safeReadHelper, "target"]
+    safeReadProc.command = ["/usr/bin/env", "-i", "HOME=" + root.home,
+      "/usr/bin/python3", "-I", root.safeReadHelper, "target"]
     safeReadTimer.restart()
     safeReadProc.running = true
   }
@@ -388,7 +391,8 @@ Panel {
           var line = out.slice(0, 1024).split("\n")[0].trim().split(/\s+/)[0] || ""
           if (/^\d+\.\d+\.\d+\.\d+$/.test(line)) root.attackerIp = line
           safeReadMode = "clipboard"
-          safeReadProc.command = ["/usr/bin/python3", root.safeReadHelper, "clipboard"]
+          safeReadProc.command = ["/usr/bin/env", "-i", "HOME=" + root.home,
+            "/usr/bin/python3", "-I", root.safeReadHelper, "clipboard"]
           safeReadTimer.restart()
           safeReadProc.running = true
         } else {

@@ -1,17 +1,20 @@
 #!/usr/bin/python3
 """OmaHack bounded no-follow file reader (marketplace security hardening).
 
-Reads one of two fixed allowlisted files using descriptor-relative checks:
-O_NOFOLLOW open (plus symlink-component walk under $HOME), regular-file and
-ownership validation on the opened fd, then a strictly capped read.
+Reads one of two fixed allowlisted files through a TOCTOU-free boundary:
+starting from a retained fd of "/", every path component is opened with
+O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC into a retained dir_fd
+(failing on symlinks and non-directories, owned by uid or root only), and
+the final file is opened relative to its retained parent fd with O_NOFOLLOW,
+then validated as a regular file owned by the caller uid before a strictly
+capped read. No pathname is ever re-resolved after its check.
+
+Must be invoked isolated with a closed minimal environment, e.g.:
+  env -i HOME=$HOME /usr/bin/python3 -I safe_read.py <target|clipboard>
 
 Usage: safe_read.py <target|clipboard>
 Exit 0 printing raw bytes (possibly empty) on success or benign absence.
 Exit 2 printing nothing on any violation or error.
-
-Never follows symlinks, never opens non-regular files (FIFO/device/socket/dir),
-never reads files owned by another uid, never reads more than the cap, and
-never accepts a path from the caller (purpose allowlist only).
 """
 import os
 import stat
@@ -28,69 +31,98 @@ REL_PATHS = {
 }
 
 
-def no_symlink_components(path, stop_at):
-    """Reject if path or any component down to (excluding) stop_at is a symlink."""
-    cur = path
-    while True:
-        try:
-            if os.path.islink(cur):
-                return False
-        except OSError:
-            return False
-        parent = os.path.dirname(cur)
-        if parent == cur or cur == stop_at:
-            return True
-        cur = parent
+def fail():
+    return 2
 
 
-def main():
-    if len(sys.argv) != 2 or sys.argv[1] not in CAPS:
-        return 2
-    purpose = sys.argv[1]
-    home = os.path.expanduser("~")
-    if not home or home == "~" or "\x00" in home:
-        return 2
-    rel = REL_PATHS[purpose]
-    if os.path.isabs(rel) or ".." in rel.split(os.sep):
-        return 2
-    path = os.path.join(home, rel)
-    if not no_symlink_components(path, home):
-        return 2
-    cap = CAPS[purpose]
+def open_component(dir_fd, name, expect_dir):
+    """Open one component relative to a retained dir_fd. Never follows symlinks."""
+    if not name or name in (".", "..") or "/" in name or "\x00" in name:
+        return -1
+    flags = os.O_RDONLY | os.O_NOFOLLOW | os.O_CLOEXEC | os.O_NONBLOCK
+    if expect_dir:
+        flags |= os.O_DIRECTORY
     try:
-        # O_NONBLOCK so a FIFO can never hang the open; O_NOFOLLOW rejects a
-        # trailing symlink; the fd is validated below before any read.
-        fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+        fd = os.open(name, flags, dir_fd=dir_fd)
     except OSError:
-        return 2
+        return -1
     try:
         st = os.fstat(fd)
+    except OSError:
+        os.close(fd)
+        return -1
+    if expect_dir:
+        if not stat.S_ISDIR(st.st_mode):
+            os.close(fd)
+            return -1
+        # Intermediate dirs must be system-owned or self-owned: an attacker
+        # cannot plant a replacement inside either.
+        if st.st_uid != 0 and st.st_uid != os.getuid():
+            os.close(fd)
+            return -1
+    return fd
+
+
+def open_bounded(path_parts, cap):
+    """Walk from retained / fd; return capped bytes or None on violation."""
+    owned = []
+    try:
+        dir_fd = os.open("/", os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC)
+        owned.append(dir_fd)
+        for comp in path_parts[:-1]:
+            nd = open_component(dir_fd, comp, True)
+            if nd < 0:
+                return None
+            owned.append(nd)
+            dir_fd = nd
+        fd = open_component(dir_fd, path_parts[-1], False)
+        if fd < 0:
+            return None
+        owned.append(fd)
+        st = os.fstat(fd)
         if not stat.S_ISREG(st.st_mode):
-            return 2
+            return None
         if st.st_uid != os.getuid():
-            return 2
+            return None
         out = b""
         remaining = cap
         while remaining > 0:
-            try:
-                chunk = os.read(fd, min(65536, remaining))
-            except OSError:
-                return 2
+            chunk = os.read(fd, min(65536, remaining))
             if not chunk:
                 break
             out += chunk
             remaining -= len(chunk)
+        return out
     except OSError:
-        return 2
+        return None
     finally:
-        try:
-            os.close(fd)
-        except OSError:
-            pass
+        for owned_fd in owned:
+            try:
+                os.close(owned_fd)
+            except OSError:
+                pass
+
+
+def main():
+    if len(sys.argv) != 2 or sys.argv[1] not in CAPS:
+        return fail()
+    purpose = sys.argv[1]
+    home = os.path.expanduser("~")
+    if not home or home == "~" or "\x00" in home or not os.path.isabs(home):
+        return fail()
+    rel = REL_PATHS[purpose]
+    if os.path.isabs(rel) or ".." in rel.split(os.sep):
+        return fail()
+    parts = [p for p in (home + os.sep + rel).split(os.sep) if p != ""]
+    if not parts:
+        return fail()
+    data = open_bounded(parts, CAPS[purpose])
+    if data is None:
+        return fail()
     try:
-        sys.stdout.buffer.write(out)
+        sys.stdout.buffer.write(data)
     except OSError:
-        return 2
+        return fail()
     return 0
 
 
