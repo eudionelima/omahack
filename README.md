@@ -2,6 +2,8 @@
 
 Bar plugin pentest toolkit for [Omarchy](https://omarchy.org). Quick payloads, listeners and enumeration helpers in the top bar, with English and Brazilian Portuguese interface.
 
+![OmaHack preview](preview.png)
+
 ## Features
 
 - Reverse shells: bash, sh, Python, PHP, Perl, Ruby, Node.js, PowerShell, Netcat, Ncat SSL, Socat, OpenSSL, Awk, Telnet, BusyBox
