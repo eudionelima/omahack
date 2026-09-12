@@ -37,6 +37,20 @@ git clone https://github.com/eudionelima/omahack ~/.config/omarchy/plugins/dione
 omarchy plugin enable dione.omahack
 ```
 
+## Uninstall
+
+Via Omarchy plugin manager:
+
+```bash
+omarchy plugin remove dione.omahack
+```
+
+For manual installations, remove the plugin directory:
+
+```bash
+rm -rf ~/.config/omarchy/plugins/dione.omahack
+```
+
 ## Usage
 
 1. Click the OmaHack icon in the bar.
