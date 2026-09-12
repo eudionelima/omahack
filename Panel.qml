@@ -283,6 +283,12 @@ Panel {
   readonly property int hashTimeoutSec: 5
   readonly property int hashInputMax: 4096
   readonly property int hashOutputMax: 512
+  // Live supervisor byte cap: enforced per stream chunk in QML, independent
+  // of the helper. Overflow kills the group immediately.
+  readonly property int hashLiveMax: 4096
+  property string hashBuf: ""
+  property int hashBytes: 0
+  property bool hashOverflow: false
 
   function hashToolFor(algo) {
     if (algo === "sha1") return "/usr/bin/sha1sum"
@@ -294,6 +300,9 @@ Panel {
   function runHash() {
     var input = String(root.hashInput || "").slice(0, root.hashInputMax)
     if (!input) { root.hashOutput = ""; return }
+    hashBuf = ""
+    hashBytes = 0
+    hashOverflow = false
     if (root.hashAlgo === "all") {
       hashProc.command = ["/usr/bin/timeout", "-k", "2", String(root.hashTimeoutSec),
         "/usr/bin/bash", "-c",
@@ -330,12 +339,42 @@ Panel {
   Process {
     id: hashProc
     running: false
-    stdout: StdioCollector {
-      waitForEnd: true
-      onStreamFinished: {
-        hashTimer.stop()
-        root.hashOutput = String(text || "").trim().slice(0, root.hashOutputMax)
+    clearEnvironment: true
+    environment: ({ "HOME": root.home })
+    stdout: SplitParser {
+      splitMarker: ""
+      onRead: function(data) {
+        hashBytes += data.length
+        if (hashBytes > root.hashLiveMax) {
+          hashOverflow = true
+          hashBuf = ""
+          hashProc.running = false
+          return
+        }
+        if (!hashOverflow) hashBuf += data
       }
+    }
+    stderr: SplitParser {
+      splitMarker: ""
+      onRead: function(data) {
+        hashBytes += data.length
+        if (hashBytes > root.hashLiveMax) {
+          hashOverflow = true
+          hashBuf = ""
+          hashProc.running = false
+        }
+      }
+    }
+    onExited: function(code) {
+      hashTimer.stop()
+      if (code === 0 && !hashOverflow) {
+        root.hashOutput = hashBuf.trim().slice(0, root.hashOutputMax)
+      } else if (hashOverflow) {
+        root.hashOutput = "output limit exceeded"
+      }
+      hashBuf = ""
+      hashBytes = 0
+      hashOverflow = false
     }
   }
 
@@ -355,6 +394,14 @@ Panel {
   // runs isolated (-I) under a closed minimal environment (env -i, HOME only).
   readonly property string safeReadHelper: root.home + "/.config/omarchy/plugins/dione.omahack/safe_read.py"
   property string safeReadMode: ""
+  // Live supervisor byte caps per mode (helper caps: 1024 target, 262144 clipboard).
+  property string safeBuf: ""
+  property int safeBytes: 0
+  property bool safeOverflow: false
+
+  function safeLiveMax() {
+    return safeReadMode === "clipboard" ? 280000 : 2048
+  }
 
   Timer {
     id: safeReadTimer
@@ -373,6 +420,9 @@ Panel {
 
   function loadSafeFiles() {
     safeReadMode = "target"
+    safeBuf = ""
+    safeBytes = 0
+    safeOverflow = false
     safeReadProc.command = ["/usr/bin/env", "-i", "HOME=" + root.home,
       "/usr/bin/python3", "-I", root.safeReadHelper, "target"]
     safeReadTimer.restart()
@@ -382,27 +432,59 @@ Panel {
   Process {
     id: safeReadProc
     running: false
-    stdout: StdioCollector {
-      waitForEnd: true
-      onStreamFinished: {
-        safeReadTimer.stop()
-        var out = String(text || "")
-        if (safeReadMode === "target") {
+    clearEnvironment: true
+    environment: ({ "HOME": root.home })
+    stdout: SplitParser {
+      splitMarker: ""
+      onRead: function(data) {
+        safeBytes += data.length
+        if (safeBytes > safeLiveMax()) {
+          safeOverflow = true
+          safeBuf = ""
+          safeReadProc.running = false
+          return
+        }
+        if (!safeOverflow) safeBuf += data
+      }
+    }
+    stderr: SplitParser {
+      splitMarker: ""
+      onRead: function(data) {
+        safeBytes += data.length
+        if (safeBytes > safeLiveMax()) {
+          safeOverflow = true
+          safeBuf = ""
+          safeReadProc.running = false
+        }
+      }
+    }
+    onExited: function(code) {
+      safeReadTimer.stop()
+      var out = safeBuf
+      var ok = (code === 0 && !safeOverflow)
+      safeBuf = ""
+      safeBytes = 0
+      safeOverflow = false
+      if (safeReadMode === "target") {
+        if (ok) {
           var line = out.slice(0, 1024).split("\n")[0].trim().split(/\s+/)[0] || ""
           if (/^\d+\.\d+\.\d+\.\d+$/.test(line)) root.attackerIp = line
-          safeReadMode = "clipboard"
-          safeReadProc.command = ["/usr/bin/env", "-i", "HOME=" + root.home,
-            "/usr/bin/python3", "-I", root.safeReadHelper, "clipboard"]
-          safeReadTimer.restart()
-          safeReadProc.running = true
-        } else {
-          try {
-            var parsed = JSON.parse(out.slice(0, 262144) || "[]")
-            if (!Array.isArray(parsed)) { root.clipHistory = []; return }
-            root.clipHistory = parsed.slice(0, 300).map(function(e) { return String(e).slice(0, 4096) })
-          } catch (e) {
-            root.clipHistory = []
-          }
+        }
+        safeReadMode = "clipboard"
+        safeBuf = ""
+        safeBytes = 0
+        safeOverflow = false
+        safeReadProc.command = ["/usr/bin/env", "-i", "HOME=" + root.home,
+          "/usr/bin/python3", "-I", root.safeReadHelper, "clipboard"]
+        safeReadTimer.restart()
+        safeReadProc.running = true
+      } else if (ok) {
+        try {
+          var parsed = JSON.parse(out.slice(0, 262144) || "[]")
+          if (!Array.isArray(parsed)) { root.clipHistory = []; return }
+          root.clipHistory = parsed.slice(0, 300).map(function(e) { return String(e).slice(0, 4096) })
+        } catch (e) {
+          root.clipHistory = []
         }
       }
     }
@@ -437,6 +519,13 @@ Panel {
         hashProc.running = false
         safeReadTimer.stop()
         safeReadProc.running = false
+        hashBuf = ""
+        hashBytes = 0
+        hashOverflow = false
+        safeBuf = ""
+        safeBytes = 0
+        safeOverflow = false
+        safeReadMode = ""
       }
     }
 
