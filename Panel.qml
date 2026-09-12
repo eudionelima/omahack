@@ -5,7 +5,6 @@ import Quickshell.Io
 import qs.Commons
 import qs.Ui
 import "Payloads.js" as P
-import "Flags.js" as Flags
 
 // OmaHack - CTF & Pentest Toolkit for Omarchy Linux
 Panel {
@@ -346,6 +345,8 @@ Panel {
     onOpenChanged: {
       if (open) {
         root.showPalette = false
+        root.keyboardNav = false
+        root.selectedIndex = 0
         Qt.callLater(function() {
           searchField.forceActiveFocus()
           searchField.selectAll()
@@ -1509,9 +1510,8 @@ Text {
     width: parent.width
     implicitHeight: cardCol.implicitHeight + Style.space(14)
     radius: Math.max(3, Style.cornerRadius)
-    color: isSelected ? Style.selectionFillFor(root.bar.foreground, Color.accent) : Style.normalFillFor(root.bar.foreground, Color.accent)
-    border.width: isSelected ? 2 : 1
-    border.color: isSelected ? Color.accent : Color.popups.border
+    color: Style.normalFillFor(root.bar.foreground, Color.accent)
+    border.width: 0
 
     Column {
       id: cardCol
@@ -1633,8 +1633,7 @@ Rectangle {
         height: Math.max(Style.space(36), codeText.implicitHeight + Style.space(12))
         radius: Math.max(2, Style.cornerRadius)
         color: Qt.darker(Style.normalFillFor(root.bar.foreground, Color.accent), 1.2)
-        border.width: 1
-        border.color: Color.popups.border
+        border.width: 0
         Text {
           id: codeText
           anchors.fill: parent
