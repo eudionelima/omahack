@@ -112,7 +112,7 @@ Panel {
     savedState.favoritesJson = JSON.stringify(next)
   }
 
-  readonly property var searchResults: P.searchPayloads(root.searchText, root.attackerIp, root.attackerPort, root.fileName, root.adDomain, root.adUser, root.dcEffective, root.pivotNet, root.pivotHost)
+  readonly property var searchResults: P.searchPayloads(root.searchText, root.attackerIp, root.attackerPort, root.fileName, root.adDomain, root.adUser, root.dcEffective, root.pivotNet, root.pivotHost, root.language)
 
 
 
@@ -170,11 +170,11 @@ Panel {
   // Active payloads list for keyboard navigation & Enter execution
   readonly property var currentPayloadsList: {
     if (root.searchText.trim() !== "") return root.searchResults
-    if (root.category === "web") return P.getWebPayloads(root.webSubcat, root.attackerIp, root.attackerPort, root.fileName, root.adDomain, root.adUser, root.dcEffective, root.pivotNet, root.pivotHost)
-    if (root.category === "linux") return P.getLinuxPayloads(root.linuxSubcat, root.attackerIp, root.attackerPort, root.fileName, root.adDomain, root.adUser, root.dcEffective, root.pivotNet, root.pivotHost)
-    if (root.category === "sqli") return P.getSqliPayloads(root.sqliSubcat, root.attackerIp, root.attackerPort, root.fileName, root.adDomain, root.adUser, root.dcEffective, root.pivotNet, root.pivotHost)
-    if (root.category === "cheats") return P.getCheatsheets(root.cheatSubcat, root.attackerIp, root.attackerPort, root.fileName, root.adDomain, root.adUser, root.dcEffective, root.pivotNet, root.pivotHost)
-    if (root.category === "favs") return P.getFavorites(root.favorites, root.attackerIp, root.attackerPort, root.fileName, root.adDomain, root.adUser, root.dcEffective, root.pivotNet, root.pivotHost)
+    if (root.category === "web") return P.getWebPayloads(root.webSubcat, root.attackerIp, root.attackerPort, root.fileName, root.adDomain, root.adUser, root.dcEffective, root.pivotNet, root.pivotHost, root.language)
+    if (root.category === "linux") return P.getLinuxPayloads(root.linuxSubcat, root.attackerIp, root.attackerPort, root.fileName, root.adDomain, root.adUser, root.dcEffective, root.pivotNet, root.pivotHost, root.language)
+    if (root.category === "sqli") return P.getSqliPayloads(root.sqliSubcat, root.attackerIp, root.attackerPort, root.fileName, root.adDomain, root.adUser, root.dcEffective, root.pivotNet, root.pivotHost, root.language)
+    if (root.category === "cheats") return P.getCheatsheets(root.cheatSubcat, root.attackerIp, root.attackerPort, root.fileName, root.adDomain, root.adUser, root.dcEffective, root.pivotNet, root.pivotHost, root.language)
+    if (root.category === "favs") return P.getFavorites(root.favorites, root.attackerIp, root.attackerPort, root.fileName, root.adDomain, root.adUser, root.dcEffective, root.pivotNet, root.pivotHost, root.language)
     return []
   }
 
@@ -233,8 +233,8 @@ Panel {
 
     // Quick Actions
     { id: "act-copy-ip", title: root.tr("Copy Attacker IP", "Copiar IP Atacante"), icon: "📋", badge: "Action", desc: root.attackerIp, action: function() { root.copyText(root.attackerIp) } },
-    { id: "act-lang-en", title: "Language: English", icon: "🌐", badge: "Lang", desc: "Switch interface to English", action: function() { root.language = "en" } },
-    { id: "act-lang-pt", title: "Idioma: Português (Brasil)", icon: "🇧🇷", badge: "Lang", desc: "Mudar interface para Português do Brasil", action: function() { root.language = "pt-BR" } }
+    { id: "act-lang-en", title: "Language: English", icon: "🌐", badge: "Lang", desc: root.tr("Switch interface to English", "Mudar interface para inglês"), action: function() { root.language = "en" } },
+    { id: "act-lang-pt", title: "Idioma: Português (Brasil)", icon: "🇧🇷", badge: "Lang", desc: root.tr("Switch interface to Brazilian Portuguese", "Mudar interface para Português do Brasil"), action: function() { root.language = "pt-BR" } }
   ]
 
   readonly property var filteredPaletteItems: {
@@ -246,7 +246,7 @@ Panel {
       var hay = (item.title + " " + item.badge + " " + item.desc).toLowerCase()
       if (hay.indexOf(q) >= 0) results.push(item)
     }
-    var pResults = P.searchPayloads(q, root.attackerIp, root.attackerPort, root.fileName, root.adDomain, root.adUser, root.dcEffective, root.pivotNet, root.pivotHost)
+    var pResults = P.searchPayloads(q, root.attackerIp, root.attackerPort, root.fileName, root.adDomain, root.adUser, root.dcEffective, root.pivotNet, root.pivotHost, root.language)
     for (var j = 0; j < Math.min(pResults.length, 10); j++) {
       var p = pResults[j]
       results.push({
@@ -860,7 +860,7 @@ Panel {
               width: parent.width
               spacing: Style.space(8)
               Repeater {
-                model: P.getWebPayloads(root.webSubcat, root.attackerIp, root.attackerPort, root.fileName, root.adDomain, root.adUser, root.dcEffective, root.pivotNet, root.pivotHost)
+                model: P.getWebPayloads(root.webSubcat, root.attackerIp, root.attackerPort, root.fileName, root.adDomain, root.adUser, root.dcEffective, root.pivotNet, root.pivotHost, root.language)
                 PayloadCard {
                   title: modelData.title
                   code: modelData.code
@@ -881,7 +881,7 @@ Panel {
               width: parent.width
               spacing: Style.space(8)
               Repeater {
-                model: P.getLinuxPayloads(root.linuxSubcat, root.attackerIp, root.attackerPort, root.fileName, root.adDomain, root.adUser, root.dcEffective, root.pivotNet, root.pivotHost)
+                model: P.getLinuxPayloads(root.linuxSubcat, root.attackerIp, root.attackerPort, root.fileName, root.adDomain, root.adUser, root.dcEffective, root.pivotNet, root.pivotHost, root.language)
                 PayloadCard {
                   title: modelData.title
                   code: modelData.code
@@ -902,7 +902,7 @@ Panel {
               width: parent.width
               spacing: Style.space(8)
               Repeater {
-                model: P.getSqliPayloads(root.sqliSubcat, root.attackerIp, root.attackerPort, root.fileName, root.adDomain, root.adUser, root.dcEffective, root.pivotNet, root.pivotHost)
+                model: P.getSqliPayloads(root.sqliSubcat, root.attackerIp, root.attackerPort, root.fileName, root.adDomain, root.adUser, root.dcEffective, root.pivotNet, root.pivotHost, root.language)
                 PayloadCard {
                   title: modelData.title
                   code: modelData.code
@@ -923,7 +923,7 @@ Panel {
               width: parent.width
               spacing: Style.space(8)
               Repeater {
-                model: P.getCheatsheets(root.cheatSubcat, root.attackerIp, root.attackerPort, root.fileName, root.adDomain, root.adUser, root.dcEffective, root.pivotNet, root.pivotHost)
+                model: P.getCheatsheets(root.cheatSubcat, root.attackerIp, root.attackerPort, root.fileName, root.adDomain, root.adUser, root.dcEffective, root.pivotNet, root.pivotHost, root.language)
                 PayloadCard {
                   title: modelData.title
                   code: modelData.code
@@ -974,7 +974,7 @@ Panel {
               }
 
               Repeater {
-                model: P.getFavorites(root.favorites, root.attackerIp, root.attackerPort, root.fileName, root.adDomain, root.adUser, root.dcEffective, root.pivotNet, root.pivotHost)
+                model: P.getFavorites(root.favorites, root.attackerIp, root.attackerPort, root.fileName, root.adDomain, root.adUser, root.dcEffective, root.pivotNet, root.pivotHost, root.language)
                 PayloadCard {
                   title: modelData.title
                   code: modelData.code
@@ -1102,7 +1102,7 @@ Button {
               PayloadCard { title: "Listener - socat TTY"; code: P.listenerSocatTTY(root.attackerPort); iconText: "󰯄"; badge: "Listener"; isSelected: root.keyboardNav && root.selectedIndex === 12 }
               PayloadCard { title: "MSFVenom - ELF"; code: P.msfvenomElf(root.attackerIp, root.attackerPort); iconText: "󰯄"; badge: "MSF"; isSelected: root.keyboardNav && root.selectedIndex === 13 }
               PayloadCard { title: "MSFVenom - PHP"; code: P.msfvenomPhp(root.attackerIp, root.attackerPort); iconText: "󰯄"; badge: "MSF"; isSelected: root.keyboardNav && root.selectedIndex === 14 }
-              PayloadCard { title: "Webshell - PHP minimo"; code: P.webshellPhpMin(); iconText: "󰯄"; badge: "Webshell"; showUrl: true; isSelected: root.keyboardNav && root.selectedIndex === 15 }
+              PayloadCard { title: root.tr("Webshell - PHP minimal", "Webshell - PHP mínimo"); code: P.webshellPhpMin(); iconText: "󰯄"; badge: "Webshell"; showUrl: true; isSelected: root.keyboardNav && root.selectedIndex === 15 }
             }
 
             // 9. WINDOWS
@@ -1121,15 +1121,15 @@ Button {
               visible: root.searchText.trim() === "" && root.category === "ad"
               width: parent.width
               spacing: Style.space(8)
-              PayloadCard { title: "Descobrir DC via DNS SRV"; code: P.adNslookupSrv(root.adDomain); iconText: "󰀂"; badge: "AD"; isSelected: root.keyboardNav && root.selectedIndex === 0 }
-              PayloadCard { title: "enum4linux-ng tudo"; code: P.adEnum4linux(root.dcEffective); iconText: "󰀂"; badge: "AD"; isSelected: root.keyboardNav && root.selectedIndex === 1 }
-              PayloadCard { title: "NetExec SMB sessao nula"; code: P.adNxcSmbNull(root.dcEffective, root.adDomain); iconText: "󰀂"; badge: "AD"; isSelected: root.keyboardNav && root.selectedIndex === 2 }
+              PayloadCard { title: root.tr("Discover DC via DNS SRV", "Descobrir DC via DNS SRV"); code: P.adNslookupSrv(root.adDomain); iconText: "󰀂"; badge: "AD"; isSelected: root.keyboardNav && root.selectedIndex === 0 }
+              PayloadCard { title: root.tr("enum4linux-ng full", "enum4linux-ng tudo"); code: P.adEnum4linux(root.dcEffective); iconText: "󰀂"; badge: "AD"; isSelected: root.keyboardNav && root.selectedIndex === 1 }
+              PayloadCard { title: root.tr("NetExec SMB null session", "NetExec SMB sessão nula"); code: P.adNxcSmbNull(root.dcEffective, root.adDomain); iconText: "󰀂"; badge: "AD"; isSelected: root.keyboardNav && root.selectedIndex === 2 }
               PayloadCard { title: "BloodHound (Linux)"; code: P.adBloodhoundPy(root.adDomain, root.adUser, root.dcEffective); iconText: "󰀂"; badge: "AD"; isSelected: root.keyboardNav && root.selectedIndex === 3 }
               PayloadCard { title: "kerbrute userenum"; code: P.adKerbruteUsers(root.adDomain, root.dcEffective); iconText: "󰀂"; badge: "AD"; isSelected: root.keyboardNav && root.selectedIndex === 4 }
               PayloadCard { title: "AS-REP roast GetNPUsers"; code: P.adGetNPUsers(root.adDomain, root.dcEffective); iconText: "󰀂"; badge: "AD"; isSelected: root.keyboardNav && root.selectedIndex === 5 }
               PayloadCard { title: "Kerberoast GetUserSPNs"; code: P.adGetUserSPNs(root.adDomain, root.adUser, root.dcEffective); iconText: "󰀂"; badge: "AD"; isSelected: root.keyboardNav && root.selectedIndex === 6 }
               PayloadCard { title: "evil-winrm PtH"; code: P.adEvilWinrmHash(root.dcEffective, root.adUser); iconText: "󰀂"; badge: "AD"; isSelected: root.keyboardNav && root.selectedIndex === 7 }
-              PayloadCard { title: "secretsdump remoto"; code: P.adSecretsdump(root.adDomain, root.adUser, root.dcEffective); iconText: "󰀂"; badge: "AD"; isSelected: root.keyboardNav && root.selectedIndex === 8 }
+              PayloadCard { title: root.tr("remote secretsdump", "secretsdump remoto"); code: P.adSecretsdump(root.adDomain, root.adUser, root.dcEffective); iconText: "󰀂"; badge: "AD"; isSelected: root.keyboardNav && root.selectedIndex === 8 }
             }
 
             // 11. PIVOT
@@ -1163,7 +1163,7 @@ Button {
               width: parent.width
               spacing: Style.space(8)
               PayloadCard { title: "Exfil - curl POST"; code: P.exfilCurlFile(root.attackerIp, root.attackerPort, root.fileName); iconText: "󰈎"; badge: "Exfil"; isSelected: root.keyboardNav && root.selectedIndex === 0 }
-              PayloadCard { title: "Exfil - nc < arquivo"; code: P.exfilNcFile(root.attackerIp, root.attackerPort, root.fileName); iconText: "󰈎"; badge: "Exfil"; isSelected: root.keyboardNav && root.selectedIndex === 1 }
+              PayloadCard { title: root.tr("Exfil - nc < file", "Exfil - nc < arquivo"); code: P.exfilNcFile(root.attackerIp, root.attackerPort, root.fileName); iconText: "󰈎"; badge: "Exfil"; isSelected: root.keyboardNav && root.selectedIndex === 1 }
               PayloadCard { title: "Exfil - tar + nc"; code: P.exfilTarNc(root.attackerIp, root.attackerPort); iconText: "󰈎"; badge: "Exfil"; isSelected: root.keyboardNav && root.selectedIndex === 2 }
               PayloadCard { title: "Exfil - DNS dig"; code: P.exfilDns(root.fileName); iconText: "󰈎"; badge: "Exfil"; isSelected: root.keyboardNav && root.selectedIndex === 3 }
               PayloadCard { title: "Exfil - ICMP ping"; code: P.exfilPing(root.fileName); iconText: "󰈎"; badge: "Exfil"; isSelected: root.keyboardNav && root.selectedIndex === 4 }
@@ -1174,10 +1174,10 @@ Button {
               visible: root.searchText.trim() === "" && root.category === "rce"
               width: parent.width
               spacing: Style.space(8)
-              PayloadCard { title: "Separador ;"; code: P.rceSemicolon("id"); iconText: "󰯂"; badge: "RCE"; showUrl: true; isSelected: root.keyboardNav && root.selectedIndex === 0 }
+              PayloadCard { title: root.tr("Separator ;", "Separador ;"); code: P.rceSemicolon("id"); iconText: "󰯂"; badge: "RCE"; showUrl: true; isSelected: root.keyboardNav && root.selectedIndex === 0 }
               PayloadCard { title: "Pipe |"; code: P.rcePipe("id"); iconText: "󰯂"; badge: "RCE"; showUrl: true; isSelected: root.keyboardNav && root.selectedIndex === 1 }
               PayloadCard { title: "Subshell $()"; code: P.rceSubshell("id"); iconText: "󰯂"; badge: "RCE"; showUrl: true; isSelected: root.keyboardNav && root.selectedIndex === 2 }
-              PayloadCard { title: "Bypass espaco ${IFS}"; code: "cat${IFS}/etc/passwd"; iconText: "󰯂"; badge: "RCE"; showUrl: true; isSelected: root.keyboardNav && root.selectedIndex === 3 }
+              PayloadCard { title: root.tr("Space bypass ${IFS}", "Bypass espaço ${IFS}"); code: "cat${IFS}/etc/passwd"; iconText: "󰯂"; badge: "RCE"; showUrl: true; isSelected: root.keyboardNav && root.selectedIndex === 3 }
               PayloadCard { title: "SSTI {{7*7}}"; code: P.rceSstiDetect(); iconText: "󰯂"; badge: "RCE"; showUrl: true; isSelected: root.keyboardNav && root.selectedIndex === 4 }
               PayloadCard { title: "SSTI Jinja2 popen"; code: P.rceSstiJinja(); iconText: "󰯂"; badge: "RCE"; showUrl: true; isSelected: root.keyboardNav && root.selectedIndex === 5 }
             }
