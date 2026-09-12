@@ -688,6 +688,40 @@ Panel {
           }
         }
 
+        // Dominio / DC (so quando em AD ou busca)
+        Row {
+          visible: root.category === "ad" || (root.searchText !== "" && (root.searchText.indexOf("domain") >= 0 || root.searchText.indexOf("ad") >= 0))
+          width: parent.width
+          spacing: Style.space(6)
+          TextField {
+            width: Style.space(180)
+            placeholderText: "Domain LAB.local"
+            text: root.adDomain
+            font.family: Style.font.family
+            foreground: root.bar.foreground
+            verticalPadding: Style.spacing.controlPaddingY
+            onTextChanged: if (text !== root.adDomain) root.adDomain = text
+          }
+          TextField {
+            width: Style.space(140)
+            placeholderText: "User Administrator"
+            text: root.adUser
+            font.family: Style.font.family
+            foreground: root.bar.foreground
+            verticalPadding: Style.spacing.controlPaddingY
+            onTextChanged: if (text !== root.adUser) root.adUser = text
+          }
+          TextField {
+            width: parent.width - Style.space(180) - Style.space(140) - Style.space(12)
+            placeholderText: "DC IP (empty = LHOST)"
+            text: root.adDc
+            font.family: Style.font.family
+            foreground: root.bar.foreground
+            verticalPadding: Style.spacing.controlPaddingY
+            onTextChanged: if (text !== root.adDc) root.adDc = text
+          }
+        }
+
         // ==========================================
         // BARRA DE MODULOS PRINCIPAIS
         // ==========================================
@@ -700,6 +734,7 @@ Panel {
           Button { text: root.tr("Linux", "Linux"); iconText: "󰌧"; selected: root.category === "linux" && root.searchText === ""; bordered: root.category !== "linux" || root.searchText !== ""; fontSize: Style.font.bodySmall; onClicked: root.navigateTo("linux", "all") }
           Button { text: root.tr("SQLi", "SQLi"); iconText: "󰆼"; selected: root.category === "sqli" && root.searchText === ""; bordered: root.category !== "sqli" || root.searchText !== ""; fontSize: Style.font.bodySmall; onClicked: root.navigateTo("sqli", "all") }
           Button { text: root.tr("Windows", "Windows"); iconText: "󰍲"; selected: root.category === "win" && root.searchText === ""; bordered: root.category !== "win" || root.searchText !== ""; fontSize: Style.font.bodySmall; onClicked: root.navigateTo("win") }
+          Button { text: root.tr("AD", "AD"); iconText: "󰀂"; selected: root.category === "ad" && root.searchText === ""; bordered: root.category !== "ad" || root.searchText !== ""; fontSize: Style.font.bodySmall; onClicked: root.navigateTo("ad") }
           Button { text: root.tr("Transfer", "Transferência"); iconText: "󰇚"; selected: root.category === "transf" && root.searchText === ""; bordered: root.category !== "transf" || root.searchText !== ""; fontSize: Style.font.bodySmall; onClicked: root.navigateTo("transf") }
           Button { text: root.tr("Exfil", "Exfiltração"); iconText: "󰈎"; selected: root.category === "exfil" && root.searchText === ""; bordered: root.category !== "exfil" || root.searchText !== ""; fontSize: Style.font.bodySmall; onClicked: root.navigateTo("exfil") }
           Button { text: root.tr("RCE", "RCE"); iconText: "󰯂"; selected: root.category === "rce" && root.searchText === ""; bordered: root.category !== "rce" || root.searchText !== ""; fontSize: Style.font.bodySmall; onClicked: root.navigateTo("rce") }
@@ -1092,6 +1127,22 @@ Button {
                 model: P.winEnum()
                 PayloadCard { title: "Windows " + (index + 1); code: modelData; iconText: "󰍲"; badge: "Windows"; isSelected: root.keyboardNav && root.selectedIndex === index }
               }
+            }
+
+            // 10. ACTIVE DIRECTORY
+            Column {
+              visible: root.searchText.trim() === "" && root.category === "ad"
+              width: parent.width
+              spacing: Style.space(8)
+              PayloadCard { title: "Descobrir DC via DNS SRV"; code: P.adNslookupSrv(root.adDomain); iconText: "󰀂"; badge: "AD"; isSelected: root.keyboardNav && root.selectedIndex === 0 }
+              PayloadCard { title: "enum4linux-ng tudo"; code: P.adEnum4linux(root.dcEffective); iconText: "󰀂"; badge: "AD"; isSelected: root.keyboardNav && root.selectedIndex === 1 }
+              PayloadCard { title: "NetExec SMB sessao nula"; code: P.adNxcSmbNull(root.dcEffective, root.adDomain); iconText: "󰀂"; badge: "AD"; isSelected: root.keyboardNav && root.selectedIndex === 2 }
+              PayloadCard { title: "BloodHound (Linux)"; code: P.adBloodhoundPy(root.adDomain, root.adUser, root.dcEffective); iconText: "󰀂"; badge: "AD"; isSelected: root.keyboardNav && root.selectedIndex === 3 }
+              PayloadCard { title: "kerbrute userenum"; code: P.adKerbruteUsers(root.adDomain, root.dcEffective); iconText: "󰀂"; badge: "AD"; isSelected: root.keyboardNav && root.selectedIndex === 4 }
+              PayloadCard { title: "AS-REP roast GetNPUsers"; code: P.adGetNPUsers(root.adDomain, root.dcEffective); iconText: "󰀂"; badge: "AD"; isSelected: root.keyboardNav && root.selectedIndex === 5 }
+              PayloadCard { title: "Kerberoast GetUserSPNs"; code: P.adGetUserSPNs(root.adDomain, root.adUser, root.dcEffective); iconText: "󰀂"; badge: "AD"; isSelected: root.keyboardNav && root.selectedIndex === 6 }
+              PayloadCard { title: "evil-winrm PtH"; code: P.adEvilWinrmHash(root.dcEffective, root.adUser); iconText: "󰀂"; badge: "AD"; isSelected: root.keyboardNav && root.selectedIndex === 7 }
+              PayloadCard { title: "secretsdump remoto"; code: P.adSecretsdump(root.adDomain, root.adUser, root.dcEffective); iconText: "󰀂"; badge: "AD"; isSelected: root.keyboardNav && root.selectedIndex === 8 }
             }
 
             // 12. TRANSFER
