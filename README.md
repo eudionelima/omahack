@@ -1,6 +1,6 @@
 # OmaHack
 
-Bar widget pentest toolkit for [Omarchy](https://omarchy.org). Quick payloads, listeners and enumeration helpers in the top bar, with English and Brazilian Portuguese interface.
+Bar plugin pentest toolkit for [Omarchy](https://omarchy.org). Quick payloads, listeners and enumeration helpers in the top bar, with English and Brazilian Portuguese interface.
 
 ## Features
 
