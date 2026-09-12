@@ -3,8 +3,8 @@
   "id": "dione.omahack",
   "name": "OmaHack",
   "version": "1.0.0",
-  "author": "dione",
-  "description": "OmaHack pentest toolkit with English and Brazilian Portuguese interface",
+  "author": "Dione Lima",
+  "description": "Security and pentesting toolkit for Omarchy with quick-access payloads, listeners, enumeration helpers, cheatsheets and bilingual interface",
   "kinds": [
     "bar-widget"
   ],
