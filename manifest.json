@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "id": "dione.chefhat",
+  "name": "OmaHack",
+  "version": "1.0.0",
+  "author": "dione",
+  "description": "OmaHack pentest toolkit with English and Brazilian Portuguese interface",
+  "kinds": [
+    "bar-widget"
+  ],
+  "entryPoints": {
+    "barWidget": "Panel.qml"
+  },
+  "barWidget": {
+    "displayName": "OmaHack",
+    "description": "OmaHack pentest toolkit",
+    "category": "Custom",
+    "allowMultiple": false
+  }
+}
