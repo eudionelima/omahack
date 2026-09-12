@@ -1,10 +1,25 @@
-# OmaHack
+<h1 align="center">OmaHack</h1>
 
-Bar plugin pentest toolkit for [Omarchy](https://omarchy.org). Quick payloads, listeners and enumeration helpers in the top bar, with English and Brazilian Portuguese interface.
+![OmaHack](screenshot.jpg)
 
-![OmaHack preview](preview.png)
+<h2 align="center">What it does</h2>
 
-## Features
+OmaHack lives in the Omarchy top bar and puts an offensive-security toolkit one click away: parameterized reverse shells, listeners, MSFVenom builders and webshells, plus exfiltration, RCE, SQLi, Active Directory and pivoting modules, CTF cheatsheets and encoding tools — everything with one-click copy (plain or URL-encoded), a bilingual interface and a searchable `Alt+K` command palette.
+
+<h2 align="center">Screenshots</h2>
+
+<table>
+  <tr>
+    <td align="center"><b>Reverse Shell</b><br><img src="screenshots/reverse-shell.png" width="420"></td>
+    <td align="center"><b>Cheatsheets</b><br><img src="screenshots/cheatsheets.png" width="420"></td>
+  </tr>
+  <tr>
+    <td align="center"><b>Pivoting</b><br><img src="screenshots/pivot.png" width="420"></td>
+    <td align="center"><b>Command palette</b><br><img src="screenshots/command-palette.png" width="420"></td>
+  </tr>
+</table>
+
+<h2 align="center">Features</h2>
 
 - Reverse shells: bash, sh, Python, PHP, Perl, Ruby, Node.js, PowerShell, Netcat, Ncat SSL, Socat, OpenSSL, Awk, Telnet, BusyBox
 - Listeners: nc, ncat, ncat SSL, socat, socat full-TTY, Metasploit handler
@@ -17,14 +32,15 @@ Bar plugin pentest toolkit for [Omarchy](https://omarchy.org). Quick payloads, l
 - Network pivoting: SSH `-L`/`-R`/`-D`/`-J`, sshuttle, Chisel, Ligolo-ng, socat relay, proxychains, Plink, `netsh portproxy`, Meterpreter autoroute/portfwd
 - Cheatsheets: Linux, SQLi, Web, Windows, Active Directory, Docker, Kubernetes, AWS, Azure
 - Tools: base64/URL/hex/HTML encoders, MD5/SHA1/SHA256/SHA512/SM3 hashing, clipboard history, favorites, command palette
+- Multilingual interface: English (USA) and Portuguese (Brazil), including payload titles and descriptions
 
-## Requirements
+<h2 align="center">Requirements</h2>
 
 - Omarchy Linux with the Quickshell bar
 - `wl-copy` (clipboard copy)
 - Optional per module: `nxc`/`crackmapexec`, `bloodhound-python`, `kerbrute`, `impacket`, `evil-winrm`, `sqlmap`, `chisel`, `sshuttle`, `hashcat`
 
-## Install
+<h2 align="center">Install</h2>
 
 Via Omarchy plugin manager:
 
@@ -39,7 +55,7 @@ git clone https://github.com/eudionelima/omahack ~/.config/omarchy/plugins/dione
 omarchy plugin enable dione.omahack
 ```
 
-## Uninstall
+<h2 align="center">Uninstall</h2>
 
 Via Omarchy plugin manager:
 
@@ -53,7 +69,7 @@ For manual installations, remove the plugin directory:
 rm -rf ~/.config/omarchy/plugins/dione.omahack
 ```
 
-## Usage
+<h2 align="center">Usage</h2>
 
 1. Click the OmaHack icon in the bar.
 2. Set LHOST / LPORT (plus Domain / User / DC for AD, Subnet / Target for pivoting).
@@ -61,6 +77,8 @@ rm -rf ~/.config/omarchy/plugins/dione.omahack
 4. Click Copy (or the URL-encoded variant) and paste at the target.
 
 The `EN`/`PT` button switches the interface between English and Brazilian Portuguese, including payload titles and descriptions.
+
+<div align="center">
 
 | Keys | Action |
 | ---- | ------ |
@@ -70,12 +88,14 @@ The `EN`/`PT` button switches the interface between English and Brazilian Portug
 | `Ctrl+D` | Favorite |
 | `Esc` | Close |
 
+</div>
+
 Favorites persist across restarts. Clipboard history keeps the last copied payloads.
 
-## Note
+<h2 align="center">Note</h2>
 
 For authorized security testing, CTFs and lab environments only. Only use against systems you own or have explicit permission to test.
 
-## License
+<h2 align="center">License</h2>
 
 MIT — see [LICENSE](LICENSE).
