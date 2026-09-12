@@ -41,10 +41,10 @@ Panel {
     }
   }
 
-  // Ctrl+K global: funciona com foco em qualquer campo (o Keys.onPressed do
+  // Alt+K global: funciona com foco em qualquer campo (o Keys.onPressed do
   // PanelKeyCatcher nao recebe teclas de irmaos com foco, por isso o Shortcut)
   Shortcut {
-    sequence: "Ctrl+K"
+    sequence: "Alt+K"
     onActivated: {
       root.showPalette = !root.showPalette
       root.paletteQuery = ""
@@ -366,8 +366,8 @@ Panel {
       anchors.fill: parent
       onCloseRequested: root.close()
       Keys.onPressed: function(event) {
-        // Ctrl+K: Command palette (atalho global acima; este ramo e reserva)
-        if (event.modifiers & Qt.ControlModifier && event.key === Qt.Key_K) {
+        // Alt+K: Command palette (atalho global acima; este ramo e reserva)
+        if (event.modifiers & Qt.AltModifier && event.key === Qt.Key_K) {
           root.showPalette = !root.showPalette
           root.paletteQuery = ""
           root.paletteIndex = 0
@@ -556,7 +556,7 @@ Panel {
               font.pixelSize: Style.font.caption
             }
           }
-// Command palette trigger button (Ctrl+K)
+// Command palette trigger button (Alt+K)
           Rectangle {
             height: Style.space(22)
             width: paletteBtnText.implicitWidth + Style.space(12)
@@ -568,7 +568,7 @@ Panel {
             Text {
               id: paletteBtnText
               anchors.centerIn: parent
-              text: "󰘳 Ctrl+K"
+              text: "󰘳 Alt+K"
               color: root.showPalette ? Color.background : root.bar.foreground
               font.family: root.bar.fontFamily
               font.pixelSize: Style.font.caption
@@ -614,7 +614,7 @@ Panel {
           }
         }
 
-        // Search Input removido: pesquisa agora e so via paleta Ctrl+K
+        // Search Input removido: pesquisa agora e so via paleta Alt+K
         // Parameters Bar (IP / Port / File / AD / Pivot)
         Row {
           width: parent.width
@@ -1286,7 +1286,7 @@ Button {
           spacing: Style.space(12)
           Text {
             textFormat: Text.PlainText
-            text: root.tr("Ctrl+K Palette • ↑↓ Navigate • Enter Copy • Ctrl+D Fav • Esc Close", "Ctrl+K Paleta • ↑↓ Navegar • Enter Copiar • Ctrl+D Fav • Esc Fechar")
+            text: root.tr("Alt+K Palette • ↑↓ Navigate • Enter Copy • Ctrl+D Fav • Esc Close", "Alt+K Paleta • ↑↓ Navegar • Enter Copiar • Ctrl+D Fav • Esc Fechar")
             color: Qt.darker(root.bar.foreground, 1.5)
             font.family: root.bar.fontFamily
             font.pixelSize: Style.font.caption
@@ -1295,7 +1295,7 @@ Button {
       }
 
       // ==========================================
-      // COMMAND PALETTE OVERLAY (Ctrl+K)
+      // COMMAND PALETTE OVERLAY (Alt+K)
       // ==========================================
       Rectangle {
         id: paletteOverlay
