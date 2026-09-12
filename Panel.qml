@@ -58,6 +58,11 @@ Panel {
   property string attackerIp: "10.10.10.10"
   property string attackerPort: "1337"
   property string fileName: "id_rsa"
+  property string adDomain: "LAB.local"
+  property string adUser: "Administrator"
+  property string adDc: ""
+  property string pivotNet: "10.10.20.0/24"
+  property string pivotHost: "10.10.20.10"
 
   // Active navigation state
   property string category: "web"
@@ -73,7 +78,7 @@ Panel {
   property string hashAlgo: "md5"
   property string hashOutput: ""
 
-  // English is default; BR flag toggles Portuguese
+  // English is default; language button switches to Portuguese
   property string language: "en"
   property string searchText: ""
   property int selectedIndex: 0
@@ -112,6 +117,7 @@ Panel {
     savedState.favoritesJson = JSON.stringify(next)
   }
 
+  readonly property string dcEffective: root.adDc !== "" ? root.adDc : root.attackerIp
   readonly property var searchResults: P.searchPayloads(root.searchText, root.attackerIp, root.attackerPort, root.fileName, root.adDomain, root.adUser, root.dcEffective, root.pivotNet, root.pivotHost, root.language)
 
 
@@ -586,10 +592,10 @@ Panel {
             }
           }
 
-          // Language toggle button
+          // Language toggle button (same size pattern as Alt+K)
           Rectangle {
             height: Style.space(22)
-            width: paletteBtnText.implicitWidth + Style.space(12)
+            width: langBtnText.implicitWidth + Style.space(12)
             radius: Style.space(3)
             color: langMouse.containsMouse ? Color.accent : Style.normalFillFor(root.bar.foreground, Color.accent)
             border.width: 1
@@ -1466,7 +1472,7 @@ Text {
     property bool showUrl: false
     property string iconText: ""
     property string badge: ""
-    property string context: ""
+    property string con              text: " " + (root.language === "en" ? "EN" : "PT")
     property string purpose: ""
     property string description: ""
     property bool isSelected: false
