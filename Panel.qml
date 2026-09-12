@@ -132,7 +132,7 @@ Panel {
   function copyText(t) {
     var s = String(t || "")
     if (!s) return
-    Quickshell.execDetached(["wl-copy", s])
+    Quickshell.execDetached(["/usr/bin/wl-copy", s])
     root.copiedMsg = root.tr("Copied!", "Copiado!")
     copyTimer.restart()
   }
@@ -277,22 +277,47 @@ Panel {
     root.showPalette = false
   }
 
+  // Hardening (marketplace security review): fixed absolute tool paths (no PATH
+  // lookup), per-algorithm allowlist (no executable indirection), bounded input,
+  // supervised timeout with kill fallback, capped output, cleanup on close.
+  readonly property int hashTimeoutSec: 5
+  readonly property int hashInputMax: 4096
+  readonly property int hashOutputMax: 512
+
+  function hashToolFor(algo) {
+    if (algo === "sha1") return "/usr/bin/sha1sum"
+    if (algo === "sha256") return "/usr/bin/sha256sum"
+    if (algo === "sha512") return "/usr/bin/sha512sum"
+    return "/usr/bin/md5sum"
+  }
+
   function runHash() {
+    var input = String(root.hashInput || "").slice(0, root.hashInputMax)
+    if (!input) { root.hashOutput = ""; return }
     if (root.hashAlgo === "all") {
-      hashProc.command = ["bash", "-c", 'v="$1"; printf "MD5    "; printf %s "$v" | md5sum | cut -d" " -f1; printf "SHA1   "; printf %s "$v" | sha1sum | cut -d" " -f1; printf "SHA256 "; printf %s "$v" | sha256sum | cut -d" " -f1; printf "SHA512 "; printf %s "$v" | sha512sum | cut -d" " -f1; if command -v openssl >/dev/null 2>&1; then printf "SM3    "; printf %s "$v" | openssl dgst -sm3 | awk "{print \\$NF}"; fi', "bash", root.hashInput]
+      hashProc.command = ["/usr/bin/timeout", "-k", "2", String(root.hashTimeoutSec),
+        "/usr/bin/bash", "-c",
+        'v="$1"; printf "MD5    "; printf %s "$v" | /usr/bin/md5sum | /usr/bin/cut -d" " -f1; printf "SHA1   "; printf %s "$v" | /usr/bin/sha1sum | /usr/bin/cut -d" " -f1; printf "SHA256 "; printf %s "$v" | /usr/bin/sha256sum | /usr/bin/cut -d" " -f1; printf "SHA512 "; printf %s "$v" | /usr/bin/sha512sum | /usr/bin/cut -d" " -f1; if [ -x /usr/bin/openssl ]; then printf "SM3    "; printf %s "$v" | /usr/bin/openssl dgst -sm3 | /usr/bin/awk "{print \\$NF}"; fi',
+        "omahack-hash", input]
+      hashTimer.restart()
       hashProc.running = true
       return
     }
-    var prog = "md5sum"
-    if (root.hashAlgo === "sha1") prog = "sha1sum"
-    else if (root.hashAlgo === "sha256") prog = "sha256sum"
-    else if (root.hashAlgo === "sha512") prog = "sha512sum"
-    else if (root.hashAlgo === "sm3") {
-      hashProc.command = ["bash", "-c", 'printf %s "$1" | openssl dgst -sm3 | awk "{print \\$NF}"', "bash", root.hashInput]
+    if (root.hashAlgo === "sm3") {
+      hashProc.command = ["/usr/bin/timeout", "-k", "2", String(root.hashTimeoutSec),
+        "/usr/bin/bash", "-c",
+        'printf %s "$1" | /usr/bin/openssl dgst -sm3 | /usr/bin/awk "{print \\$NF}"',
+        "omahack-hash", input]
+      hashTimer.restart()
       hashProc.running = true
       return
     }
-    hashProc.command = ["bash", "-c", 'printf %s "$1" | "$2" | cut -d" " -f1', "bash", root.hashInput, prog]
+    var tool = hashToolFor(root.hashAlgo)
+    hashProc.command = ["/usr/bin/timeout", "-k", "2", String(root.hashTimeoutSec),
+      "/usr/bin/bash", "-c",
+      'printf %s "$1" | ' + tool + ' | /usr/bin/cut -d" " -f1',
+      "omahack-hash", input]
+    hashTimer.restart()
     hashProc.running = true
   }
 
@@ -307,22 +332,38 @@ Panel {
     running: false
     stdout: StdioCollector {
       waitForEnd: true
-      onStreamFinished: root.hashOutput = String(text || "").trim()
+      onStreamFinished: {
+        hashTimer.stop()
+        root.hashOutput = String(text || "").trim().slice(0, root.hashOutputMax)
+      }
     }
   }
 
-  // Preenche o IP com o target atual (~/.config/bin/target)
+  // Supervised timeout: kills a hung hash pipeline (timeout -k is the first
+  // layer, this is the second).
+  Timer {
+    id: hashTimer
+    interval: 6000
+    repeat: false
+    onTriggered: hashProc.running = false
+  }
+
+  // Preenche o IP com o target atual (~/.config/bin/target).
+  // Hardening: caminho fixo (sem entrada do usuario), primeira linha ate 1 KiB,
+  // conteudo validado por regex IPv4 antes de qualquer uso.
   FileView {
     path: root.home + "/.config/bin/target"
     watchChanges: false
     printErrors: false
     onLoaded: {
-      var line = String(text || "").split("\n")[0].trim().split(/\s+/)[0] || ""
+      var line = String(text || "").slice(0, 1024).split("\n")[0].trim().split(/\s+/)[0] || ""
       if (/^\d+\.\d+\.\d+\.\d+$/.test(line)) root.attackerIp = line
     }
   }
 
-  // Monitora historico do clipboard do Omarchy
+  // Monitora historico do clipboard do Omarchy.
+  // Hardening: caminho fixo (sem entrada do usuario), leitura limitada a 256 KiB,
+  // maximo 300 itens de ate 4 KiB cada como strings (limita render e copia).
   FileView {
     id: clipHistoryView
     path: root.home + "/.local/state/omarchy/clipboard-history.json"
@@ -330,9 +371,10 @@ Panel {
     printErrors: false
     onLoaded: {
       try {
-        var raw = typeof text === "function" ? text() : text
+        var raw = String(typeof text === "function" ? text() : text || "").slice(0, 262144)
         var parsed = JSON.parse(raw || "[]")
-        root.clipHistory = Array.isArray(parsed) ? parsed : []
+        if (!Array.isArray(parsed)) { root.clipHistory = []; return }
+        root.clipHistory = parsed.slice(0, 300).map(function(e) { return String(e).slice(0, 4096) })
       } catch (e) {
         root.clipHistory = []
       }
@@ -364,6 +406,9 @@ Panel {
         root.showPalette = false
         root.keyboardNav = false
         root.selectedIndex = 0
+      } else {
+        hashTimer.stop()
+        hashProc.running = false
       }
     }
 
