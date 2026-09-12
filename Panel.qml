@@ -348,39 +348,60 @@ Panel {
     onTriggered: hashProc.running = false
   }
 
-  // Preenche o IP com o target atual (~/.config/bin/target).
-  // Hardening: caminho fixo (sem entrada do usuario), primeira linha ate 1 KiB,
-  // conteudo validado por regex IPv4 antes de qualquer uso.
-  FileView {
-    path: root.home + "/.config/bin/target"
-    watchChanges: false
-    printErrors: false
-    onLoaded: {
-      var line = String(text || "").slice(0, 1024).split("\n")[0].trim().split(/\s+/)[0] || ""
-      if (/^\d+\.\d+\.\d+\.\d+$/.test(line)) root.attackerIp = line
-    }
+  // File reads go through safe_read.py (no FileView): descriptor-relative
+  // O_NOFOLLOW open, regular-file + ownership checks on the fd, strictly
+  // capped reads, purpose allowlist only (target|clipboard). No path input.
+  readonly property string safeReadHelper: root.home + "/.config/omarchy/plugins/dione.omahack/safe_read.py"
+  property string safeReadMode: ""
+
+  Timer {
+    id: safeReadTimer
+    interval: 8000
+    repeat: false
+    onTriggered: safeReadProc.running = false
   }
 
-  // Monitora historico do clipboard do Omarchy.
-  // Hardening: caminho fixo (sem entrada do usuario), leitura limitada a 256 KiB,
-  // maximo 300 itens de ate 4 KiB cada como strings (limita render e copia).
-  FileView {
-    id: clipHistoryView
-    path: root.home + "/.local/state/omarchy/clipboard-history.json"
-    watchChanges: true
-    printErrors: false
-    onLoaded: {
-      try {
-        var raw = String(typeof text === "function" ? text() : text || "").slice(0, 262144)
-        var parsed = JSON.parse(raw || "[]")
-        if (!Array.isArray(parsed)) { root.clipHistory = []; return }
-        root.clipHistory = parsed.slice(0, 300).map(function(e) { return String(e).slice(0, 4096) })
-      } catch (e) {
-        root.clipHistory = []
+  Timer {
+    id: clipPollTimer
+    interval: 5000
+    repeat: true
+    running: root.opened
+    onTriggered: loadSafeFiles()
+  }
+
+  function loadSafeFiles() {
+    safeReadMode = "target"
+    safeReadProc.command = ["/usr/bin/python3", root.safeReadHelper, "target"]
+    safeReadTimer.restart()
+    safeReadProc.running = true
+  }
+
+  Process {
+    id: safeReadProc
+    running: false
+    stdout: StdioCollector {
+      waitForEnd: true
+      onStreamFinished: {
+        safeReadTimer.stop()
+        var out = String(text || "")
+        if (safeReadMode === "target") {
+          var line = out.slice(0, 1024).split("\n")[0].trim().split(/\s+/)[0] || ""
+          if (/^\d+\.\d+\.\d+\.\d+$/.test(line)) root.attackerIp = line
+          safeReadMode = "clipboard"
+          safeReadProc.command = ["/usr/bin/python3", root.safeReadHelper, "clipboard"]
+          safeReadTimer.restart()
+          safeReadProc.running = true
+        } else {
+          try {
+            var parsed = JSON.parse(out.slice(0, 262144) || "[]")
+            if (!Array.isArray(parsed)) { root.clipHistory = []; return }
+            root.clipHistory = parsed.slice(0, 300).map(function(e) { return String(e).slice(0, 4096) })
+          } catch (e) {
+            root.clipHistory = []
+          }
+        }
       }
     }
-    onLoadFailed: root.clipHistory = []
-    onFileChanged: reload()
   }
 
   BarIconButton {
@@ -406,9 +427,12 @@ Panel {
         root.showPalette = false
         root.keyboardNav = false
         root.selectedIndex = 0
+        loadSafeFiles()
       } else {
         hashTimer.stop()
         hashProc.running = false
+        safeReadTimer.stop()
+        safeReadProc.running = false
       }
     }
 
