@@ -722,6 +722,31 @@ Panel {
           }
         }
 
+        // Pivot Subnet / Target (so quando em Pivot)
+        Row {
+          visible: root.category === "pivot"
+          width: parent.width
+          spacing: Style.space(6)
+          TextField {
+            width: (parent.width - Style.space(6)) / 2
+            placeholderText: "Subnet 10.10.20.0/24"
+            text: root.pivotNet
+            font.family: Style.font.family
+            foreground: root.bar.foreground
+            verticalPadding: Style.spacing.controlPaddingY
+            onTextChanged: if (text !== root.pivotNet) root.pivotNet = text
+          }
+          TextField {
+            width: (parent.width - Style.space(6)) / 2
+            placeholderText: "Target 10.10.20.10"
+            text: root.pivotHost
+            font.family: Style.font.family
+            foreground: root.bar.foreground
+            verticalPadding: Style.spacing.controlPaddingY
+            onTextChanged: if (text !== root.pivotHost) root.pivotHost = text
+          }
+        }
+
         // ==========================================
         // BARRA DE MODULOS PRINCIPAIS
         // ==========================================
@@ -735,6 +760,7 @@ Panel {
           Button { text: root.tr("SQLi", "SQLi"); iconText: "󰆼"; selected: root.category === "sqli" && root.searchText === ""; bordered: root.category !== "sqli" || root.searchText !== ""; fontSize: Style.font.bodySmall; onClicked: root.navigateTo("sqli", "all") }
           Button { text: root.tr("Windows", "Windows"); iconText: "󰍲"; selected: root.category === "win" && root.searchText === ""; bordered: root.category !== "win" || root.searchText !== ""; fontSize: Style.font.bodySmall; onClicked: root.navigateTo("win") }
           Button { text: root.tr("AD", "AD"); iconText: "󰀂"; selected: root.category === "ad" && root.searchText === ""; bordered: root.category !== "ad" || root.searchText !== ""; fontSize: Style.font.bodySmall; onClicked: root.navigateTo("ad") }
+          Button { text: root.tr("Pivot", "Pivot"); iconText: "󰑩"; selected: root.category === "pivot" && root.searchText === ""; bordered: root.category !== "pivot" || root.searchText !== ""; fontSize: Style.font.bodySmall; onClicked: root.navigateTo("pivot") }
           Button { text: root.tr("Transfer", "Transferência"); iconText: "󰇚"; selected: root.category === "transf" && root.searchText === ""; bordered: root.category !== "transf" || root.searchText !== ""; fontSize: Style.font.bodySmall; onClicked: root.navigateTo("transf") }
           Button { text: root.tr("Exfil", "Exfiltração"); iconText: "󰈎"; selected: root.category === "exfil" && root.searchText === ""; bordered: root.category !== "exfil" || root.searchText !== ""; fontSize: Style.font.bodySmall; onClicked: root.navigateTo("exfil") }
           Button { text: root.tr("RCE", "RCE"); iconText: "󰯂"; selected: root.category === "rce" && root.searchText === ""; bordered: root.category !== "rce" || root.searchText !== ""; fontSize: Style.font.bodySmall; onClicked: root.navigateTo("rce") }
@@ -1143,6 +1169,20 @@ Button {
               PayloadCard { title: "Kerberoast GetUserSPNs"; code: P.adGetUserSPNs(root.adDomain, root.adUser, root.dcEffective); iconText: "󰀂"; badge: "AD"; isSelected: root.keyboardNav && root.selectedIndex === 6 }
               PayloadCard { title: "evil-winrm PtH"; code: P.adEvilWinrmHash(root.dcEffective, root.adUser); iconText: "󰀂"; badge: "AD"; isSelected: root.keyboardNav && root.selectedIndex === 7 }
               PayloadCard { title: "secretsdump remoto"; code: P.adSecretsdump(root.adDomain, root.adUser, root.dcEffective); iconText: "󰀂"; badge: "AD"; isSelected: root.keyboardNav && root.selectedIndex === 8 }
+            }
+
+            // 11. PIVOT
+            Column {
+              visible: root.searchText.trim() === "" && root.category === "pivot"
+              width: parent.width
+              spacing: Style.space(8)
+              PayloadCard { title: "SSH -L local forward"; code: P.pivSshL(root.attackerIp, root.pivotHost); iconText: "󰑩"; badge: "Pivot"; isSelected: root.keyboardNav && root.selectedIndex === 0 }
+              PayloadCard { title: "SSH -R remote forward"; code: P.pivSshR(root.attackerIp); iconText: "󰑩"; badge: "Pivot"; isSelected: root.keyboardNav && root.selectedIndex === 1 }
+              PayloadCard { title: "SSH -D SOCKS"; code: P.pivSshD(root.attackerIp); iconText: "󰑩"; badge: "Pivot"; isSelected: root.keyboardNav && root.selectedIndex === 2 }
+              PayloadCard { title: "Chisel server"; code: P.pivChiselServer(root.attackerPort); iconText: "󰑩"; badge: "Pivot"; isSelected: root.keyboardNav && root.selectedIndex === 3 }
+              PayloadCard { title: "Chisel R:socks"; code: P.pivChiselSocks(root.attackerIp, root.attackerPort); iconText: "󰑩"; badge: "Pivot"; isSelected: root.keyboardNav && root.selectedIndex === 4 }
+              PayloadCard { title: "Ligolo proxy"; code: P.pivLigoloProxy(); iconText: "󰑩"; badge: "Pivot"; isSelected: root.keyboardNav && root.selectedIndex === 5 }
+              PayloadCard { title: "Ligolo agent"; code: P.pivLigoloAgent(root.attackerIp, root.attackerPort); iconText: "󰑩"; badge: "Pivot"; isSelected: root.keyboardNav && root.selectedIndex === 6 }
             }
 
             // 12. TRANSFER

