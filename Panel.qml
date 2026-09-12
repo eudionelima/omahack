@@ -604,7 +604,7 @@ Panel {
             Text {
               id: langBtnText
               anchors.centerIn: parent
-              text: ""
+              text: " " + (root.language === "en" ? "EN" : "PT")
               color: langMouse.containsMouse ? Color.background : root.bar.foreground
               font.family: root.bar.fontFamily
               font.pixelSize: Style.font.caption
@@ -1472,7 +1472,7 @@ Text {
     property bool showUrl: false
     property string iconText: ""
     property string badge: ""
-    property string con              text: " " + (root.language === "en" ? "EN" : "PT")
+    property string context: ""
     property string purpose: ""
     property string description: ""
     property bool isSelected: false
