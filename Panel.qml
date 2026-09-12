@@ -701,6 +701,8 @@ Panel {
           Button { text: root.tr("SQLi", "SQLi"); iconText: "󰆼"; selected: root.category === "sqli" && root.searchText === ""; bordered: root.category !== "sqli" || root.searchText !== ""; fontSize: Style.font.bodySmall; onClicked: root.navigateTo("sqli", "all") }
           Button { text: root.tr("Windows", "Windows"); iconText: "󰍲"; selected: root.category === "win" && root.searchText === ""; bordered: root.category !== "win" || root.searchText !== ""; fontSize: Style.font.bodySmall; onClicked: root.navigateTo("win") }
           Button { text: root.tr("Transfer", "Transferência"); iconText: "󰇚"; selected: root.category === "transf" && root.searchText === ""; bordered: root.category !== "transf" || root.searchText !== ""; fontSize: Style.font.bodySmall; onClicked: root.navigateTo("transf") }
+          Button { text: root.tr("Exfil", "Exfiltração"); iconText: "󰈎"; selected: root.category === "exfil" && root.searchText === ""; bordered: root.category !== "exfil" || root.searchText !== ""; fontSize: Style.font.bodySmall; onClicked: root.navigateTo("exfil") }
+          Button { text: root.tr("RCE", "RCE"); iconText: "󰯂"; selected: root.category === "rce" && root.searchText === ""; bordered: root.category !== "rce" || root.searchText !== ""; fontSize: Style.font.bodySmall; onClicked: root.navigateTo("rce") }
           Button { text: root.tr("Cheatsheets", "Guias"); iconText: "󰚩"; selected: root.category === "cheats" && root.searchText === ""; bordered: root.category !== "cheats" || root.searchText !== ""; fontSize: Style.font.bodySmall; onClicked: root.navigateTo("cheats", "all") }
           Button { text: root.tr("Clipboard", "Clipboard") + (root.clipHistory.length > 0 ? (" (" + root.clipHistory.length + ")") : ""); iconText: "󰅍"; selected: root.category === "clipboard" && root.searchText === ""; bordered: root.category !== "clipboard" || root.searchText !== ""; fontSize: Style.font.bodySmall; onClicked: root.navigateTo("clipboard") }
           Button { text: root.tr("Favorites", "Favoritos") + (root.favorites.length > 0 ? (" (" + root.favorites.length + ")") : ""); iconText: "★"; selected: root.category === "favs" && root.searchText === ""; bordered: root.category !== "favs" || root.searchText !== ""; fontSize: Style.font.bodySmall; onClicked: root.navigateTo("favs") }
@@ -1071,6 +1073,14 @@ Button {
               PayloadCard { title: "Reverse Shell - Netcat -e"; code: P.revNcE(root.attackerIp, root.attackerPort); iconText: "󰯄"; badge: "Reverse"; showUrl: true; isSelected: root.keyboardNav && root.selectedIndex === 5 }
               PayloadCard { title: "Reverse Shell - PowerShell"; code: P.revPowershell(root.attackerIp, root.attackerPort); iconText: "󰯄"; badge: "Reverse"; showUrl: true; isSelected: root.keyboardNav && root.selectedIndex === 6 }
               PayloadCard { title: "Reverse Shell - Ruby"; code: P.revRuby(root.attackerIp, root.attackerPort); iconText: "󰯄"; badge: "Reverse"; showUrl: true; isSelected: root.keyboardNav && root.selectedIndex === 7 }
+              PayloadCard { title: "Reverse Shell - Socat"; code: P.revSocat(root.attackerIp, root.attackerPort); iconText: "󰯄"; badge: "Reverse"; showUrl: true; isSelected: root.keyboardNav && root.selectedIndex === 8 }
+              PayloadCard { title: "Reverse Shell - OpenSSL"; code: P.revOpenssl(root.attackerIp, root.attackerPort); iconText: "󰯄"; badge: "Reverse"; showUrl: true; isSelected: root.keyboardNav && root.selectedIndex === 9 }
+              PayloadCard { title: "Listener - nc"; code: P.listenerNc(root.attackerPort); iconText: "󰯄"; badge: "Listener"; isSelected: root.keyboardNav && root.selectedIndex === 10 }
+              PayloadCard { title: "Listener - ncat SSL"; code: P.listenerNcatSSL(root.attackerPort); iconText: "󰯄"; badge: "Listener"; isSelected: root.keyboardNav && root.selectedIndex === 11 }
+              PayloadCard { title: "Listener - socat TTY"; code: P.listenerSocatTTY(root.attackerPort); iconText: "󰯄"; badge: "Listener"; isSelected: root.keyboardNav && root.selectedIndex === 12 }
+              PayloadCard { title: "MSFVenom - ELF"; code: P.msfvenomElf(root.attackerIp, root.attackerPort); iconText: "󰯄"; badge: "MSF"; isSelected: root.keyboardNav && root.selectedIndex === 13 }
+              PayloadCard { title: "MSFVenom - PHP"; code: P.msfvenomPhp(root.attackerIp, root.attackerPort); iconText: "󰯄"; badge: "MSF"; isSelected: root.keyboardNav && root.selectedIndex === 14 }
+              PayloadCard { title: "Webshell - PHP minimo"; code: P.webshellPhpMin(); iconText: "󰯄"; badge: "Webshell"; showUrl: true; isSelected: root.keyboardNav && root.selectedIndex === 15 }
             }
 
             // 9. WINDOWS
@@ -1093,6 +1103,31 @@ Button {
               PayloadCard { title: root.tr("wget (victim)", "wget (vítima)"); code: P.transferWget(root.attackerIp, root.attackerPort, root.fileName); iconText: "󰇚"; badge: "Transfer"; isSelected: root.keyboardNav && root.selectedIndex === 1 }
               PayloadCard { title: root.tr("curl (victim)", "curl (vítima)"); code: P.transferCurl(root.attackerIp, root.attackerPort, root.fileName); iconText: "󰇚"; badge: "Transfer"; isSelected: root.keyboardNav && root.selectedIndex === 2 }
               PayloadCard { title: "Upload bash /dev/tcp"; code: P.transferBashUpload(root.attackerIp, root.attackerPort, root.fileName); iconText: "󰇚"; badge: "Transfer"; isSelected: root.keyboardNav && root.selectedIndex === 3 }
+            }
+
+            // 13. EXFIL
+            Column {
+              visible: root.searchText.trim() === "" && root.category === "exfil"
+              width: parent.width
+              spacing: Style.space(8)
+              PayloadCard { title: "Exfil - curl POST"; code: P.exfilCurlFile(root.attackerIp, root.attackerPort, root.fileName); iconText: "󰈎"; badge: "Exfil"; isSelected: root.keyboardNav && root.selectedIndex === 0 }
+              PayloadCard { title: "Exfil - nc < arquivo"; code: P.exfilNcFile(root.attackerIp, root.attackerPort, root.fileName); iconText: "󰈎"; badge: "Exfil"; isSelected: root.keyboardNav && root.selectedIndex === 1 }
+              PayloadCard { title: "Exfil - tar + nc"; code: P.exfilTarNc(root.attackerIp, root.attackerPort); iconText: "󰈎"; badge: "Exfil"; isSelected: root.keyboardNav && root.selectedIndex === 2 }
+              PayloadCard { title: "Exfil - DNS dig"; code: P.exfilDns(root.fileName); iconText: "󰈎"; badge: "Exfil"; isSelected: root.keyboardNav && root.selectedIndex === 3 }
+              PayloadCard { title: "Exfil - ICMP ping"; code: P.exfilPing(root.fileName); iconText: "󰈎"; badge: "Exfil"; isSelected: root.keyboardNav && root.selectedIndex === 4 }
+            }
+
+            // 14. RCE
+            Column {
+              visible: root.searchText.trim() === "" && root.category === "rce"
+              width: parent.width
+              spacing: Style.space(8)
+              PayloadCard { title: "Separador ;"; code: P.rceSemicolon("id"); iconText: "󰯂"; badge: "RCE"; showUrl: true; isSelected: root.keyboardNav && root.selectedIndex === 0 }
+              PayloadCard { title: "Pipe |"; code: P.rcePipe("id"); iconText: "󰯂"; badge: "RCE"; showUrl: true; isSelected: root.keyboardNav && root.selectedIndex === 1 }
+              PayloadCard { title: "Subshell $()"; code: P.rceSubshell("id"); iconText: "󰯂"; badge: "RCE"; showUrl: true; isSelected: root.keyboardNav && root.selectedIndex === 2 }
+              PayloadCard { title: "Bypass espaco ${IFS}"; code: "cat${IFS}/etc/passwd"; iconText: "󰯂"; badge: "RCE"; showUrl: true; isSelected: root.keyboardNav && root.selectedIndex === 3 }
+              PayloadCard { title: "SSTI {{7*7}}"; code: P.rceSstiDetect(); iconText: "󰯂"; badge: "RCE"; showUrl: true; isSelected: root.keyboardNav && root.selectedIndex === 4 }
+              PayloadCard { title: "SSTI Jinja2 popen"; code: P.rceSstiJinja(); iconText: "󰯂"; badge: "RCE"; showUrl: true; isSelected: root.keyboardNav && root.selectedIndex === 5 }
             }
 
             // 15. ENCODE / DECODE TOOL

