@@ -9,12 +9,12 @@ import "Payloads.js" as P
 // OmaHack - CTF & Pentest Toolkit for Omarchy Linux
 Panel {
   id: root
-  moduleName: "dione.chefhat"
-  ipcTarget: "dione.chefhat"
+  moduleName: "dione.omahack"
+  ipcTarget: "dione.omahack"
 
   Scope {
     IpcHandler {
-      target: "dione.chefhat.control"
+      target: "dione.omahack.control"
       function togglePalette(): void {
         root.showPalette = !root.showPalette
         root.paletteQuery = ""
