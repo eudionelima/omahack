@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "dione.omahack",
   "name": "OmaHack",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "author": "Dione Lima",
   "description": "Security and pentesting toolkit for Omarchy with quick-access payloads, listeners, enumeration helpers, cheatsheets and bilingual interface",
   "kinds": [

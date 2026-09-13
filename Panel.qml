@@ -132,9 +132,21 @@ Panel {
   function copyText(t) {
     var s = String(t || "")
     if (!s) return
-    Quickshell.execDetached(["/usr/bin/wl-copy", s])
+    copyProc.command = ["/usr/bin/wl-copy", s]
+    copyProc.running = true
     root.copiedMsg = root.tr("Copied!", "Copiado!")
     copyTimer.restart()
+  }
+
+  Process {
+    id: copyProc
+    running: false
+    clearEnvironment: true
+    environment: ({
+      "HOME": root.home,
+      "WAYLAND_DISPLAY": Quickshell.env("WAYLAND_DISPLAY"),
+      "XDG_RUNTIME_DIR": Quickshell.env("XDG_RUNTIME_DIR")
+    })
   }
 
   function navigateTo(cat, subcat) {
@@ -391,7 +403,7 @@ Panel {
   // retained root fd (O_DIRECTORY|O_NOFOLLOW per component, root-or-self owned
   // dirs), final open relative to the retained parent, regular-file + ownership
   // checks on the fd, strictly capped reads, purpose allowlist only. Python
-  // runs isolated (-I) under a closed minimal environment (env -i, HOME only).
+  // runs isolated (-I) under a closed process environment (clearEnvironment: true).
   readonly property string safeReadHelper: root.home + "/.config/omarchy/plugins/dione.omahack/safe_read.py"
   property string safeReadMode: ""
   // Live supervisor byte caps per mode (helper caps: 1024 target, 262144 clipboard).
@@ -423,8 +435,7 @@ Panel {
     safeBuf = ""
     safeBytes = 0
     safeOverflow = false
-    safeReadProc.command = ["/usr/bin/env", "-i", "HOME=" + root.home,
-      "/usr/bin/python3", "-I", root.safeReadHelper, "target"]
+    safeReadProc.command = ["/usr/bin/python3", "-I", root.safeReadHelper, "target"]
     safeReadTimer.restart()
     safeReadProc.running = true
   }
@@ -474,8 +485,7 @@ Panel {
         safeBuf = ""
         safeBytes = 0
         safeOverflow = false
-        safeReadProc.command = ["/usr/bin/env", "-i", "HOME=" + root.home,
-          "/usr/bin/python3", "-I", root.safeReadHelper, "clipboard"]
+        safeReadProc.command = ["/usr/bin/python3", "-I", root.safeReadHelper, "clipboard"]
         safeReadTimer.restart()
         safeReadProc.running = true
       } else if (ok) {
